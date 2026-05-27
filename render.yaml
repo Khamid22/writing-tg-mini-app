@@ -19,6 +19,8 @@ services:
         sync: false
       - key: TELEGRAM_ADMIN_IDS
         sync: false
+      - key: MINI_APP_URL
+        value: https://uzbek-words-mini-app.onrender.com
       - key: ALLOW_DEV_AUTH
         value: "false"
       - key: CORS_ORIGINS

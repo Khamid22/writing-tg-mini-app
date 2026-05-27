@@ -101,8 +101,6 @@ export function App(): JSX.Element {
         {activeTab === "profile" ? (
           <ProfileScreen
             state={state}
-            apiToken={apiToken}
-            updateState={updateState}
             onLogout={() => {
               clearState();
               clearStoredToken();

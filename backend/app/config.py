@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     telegram_bot_token: str = Field(default="", alias="TELEGRAM_BOT_TOKEN")
     telegram_webhook_secret: str = Field(default="", alias="TELEGRAM_WEBHOOK_SECRET")
     telegram_admin_ids: str = Field(default="", alias="TELEGRAM_ADMIN_IDS")
+    mini_app_url: str = Field(default="https://uzbek-words-mini-app.onrender.com", alias="MINI_APP_URL")
     allow_dev_auth: bool = Field(default=True, alias="ALLOW_DEV_AUTH")
     cors_origins: str = Field(
         default="http://localhost:5174,http://127.0.0.1:5174",
