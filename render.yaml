@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: uzbek-words-mini-app
+    runtime: docker
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: uzbek-words-db
+          property: connectionString
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_WEBHOOK_SECRET
+        generateValue: true
+      - key: TELEGRAM_ADMIN_IDS
+        sync: false
+      - key: ALLOW_DEV_AUTH
+        value: "false"
+      - key: CORS_ORIGINS
+        sync: false
+      - key: FREE_DAILY_WORD_LIMIT
+        value: "10"
+      - key: DEFAULT_TIMEZONE
+        value: Asia/Tashkent
+      - key: SEED_DEFAULT_WORDS
+        value: "true"
+      - key: MANUAL_PAYMENT_AMOUNT_UZS
+        value: "49000"
+      - key: MANUAL_PAYMENT_CARD_LABEL
+        sync: false
+      - key: MANUAL_PAYMENT_PLAN_DAYS
+        value: "30"
+      - key: ADMIN_APPROVAL_TOKEN
+        generateValue: true
+
+databases:
+  - name: uzbek-words-db
+    databaseName: uzbek_words
+    user: uzbek_words_user
+    plan: starter

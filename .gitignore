@@ -1,0 +1,21 @@
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+
+# Backend
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/**/*.pyc
+*.db
+
+# Local exports/prototypes
+VocabHelper _standalone_.html
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store

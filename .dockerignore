@@ -1,0 +1,11 @@
+.env
+.DS_Store
+mini_app.db
+*.db
+frontend/node_modules
+frontend/dist
+frontend/*.tsbuildinfo
+backend/.venv
+backend/**/__pycache__
+backend/**/*.pyc
+
