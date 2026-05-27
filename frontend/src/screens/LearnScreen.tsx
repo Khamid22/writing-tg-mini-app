@@ -111,20 +111,60 @@ export function LearnScreen({
         type="button"
       >
         <div className="flashcard-side flashcard-front">
-          <p className="word-type">
-            {nextWord.wordType} · {nextWord.level}
-          </p>
-          <h2>{nextWord.word}</h2>
-          <p className="phonetic">{nextWord.phonetic}</p>
+          <div className="flashcard-meta">
+            <span>Karta · {nextWord.level}</span>
+            <span>{nextWord.wordType}</span>
+          </div>
+          <div className="flashcard-word-block">
+            <h2>{nextWord.word}</h2>
+            <p className="phonetic">{nextWord.phonetic} · {nextWord.wordType}</p>
+          </div>
+          <div className="flashcard-hint">
+            <em>Ma'noni ko'rish uchun bosing.</em>
+            <button
+              aria-label="Talaffuz"
+              className="flashcard-speaker"
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                speak(nextWord);
+              }}
+            >
+              ♪
+            </button>
+          </div>
         </div>
         <div className="flashcard-side flashcard-back">
-          <p className="definition">{nextWord.englishDefinition}</p>
-          <div className="translation-block">
-            <span>O'zbekcha</span>
-            <strong>{nextWord.uzbekDefinition}</strong>
+          <div className="flashcard-meta">
+            <span>Ma'no</span>
+            <span>{nextWord.level}</span>
           </div>
-          <p className="example">{nextWord.englishExample}</p>
-          <p className="uzbek-example">{nextWord.uzbekExample}</p>
+          <div className="flashcard-defs">
+            <dl>
+              <dt>Inglizcha</dt>
+              <dd>{nextWord.englishDefinition}</dd>
+              <dt>O'zbekcha</dt>
+              <dd>{nextWord.uzbekDefinition}</dd>
+              <dt>Misol</dt>
+              <dd><em>{nextWord.englishExample}</em></dd>
+              <dt>Tarjima</dt>
+              <dd>{nextWord.uzbekExample}</dd>
+            </dl>
+          </div>
+          <div className="flashcard-hint">
+            <em>Orqaga qaytarish uchun yana bosing.</em>
+            <button
+              aria-label="Talaffuz"
+              className="flashcard-speaker"
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                speak(nextWord);
+              }}
+            >
+              ♪
+            </button>
+          </div>
         </div>
       </button>
 
