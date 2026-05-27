@@ -5,9 +5,25 @@ import "./styles.css";
 
 const telegramApp = window.Telegram?.WebApp;
 
+function safeTelegramCall(action: () => void): void {
+  try {
+    action();
+  } catch {
+    // Some Telegram clients expose newer methods before they are usable.
+  }
+}
+
+function usableViewportHeight(value: number | undefined): number | undefined {
+  if (!value || value < 320) return undefined;
+  return value;
+}
+
 function setTelegramViewportVars(): void {
-  const viewportHeight = telegramApp?.viewportHeight || window.visualViewport?.height || window.innerHeight;
-  const stableHeight = telegramApp?.viewportStableHeight || viewportHeight;
+  const viewportHeight =
+    usableViewportHeight(telegramApp?.viewportHeight) ??
+    usableViewportHeight(window.visualViewport?.height) ??
+    window.innerHeight;
+  const stableHeight = usableViewportHeight(telegramApp?.viewportStableHeight) ?? viewportHeight;
   const safeArea = telegramApp?.safeAreaInset ?? {};
   const contentSafeArea = telegramApp?.contentSafeAreaInset ?? {};
   const root = document.documentElement;
@@ -20,16 +36,16 @@ function setTelegramViewportVars(): void {
   root.style.setProperty("--tg-content-safe-bottom", `${contentSafeArea.bottom ?? 0}px`);
 }
 
-telegramApp?.ready?.();
-telegramApp?.expand?.();
-telegramApp?.requestFullscreen?.();
-telegramApp?.disableVerticalSwipes?.();
-telegramApp?.enableClosingConfirmation?.();
-telegramApp?.setHeaderColor?.("#f3f3f2");
-telegramApp?.setBackgroundColor?.("#f3f3f2");
-telegramApp?.setBottomBarColor?.("#f3f3f2");
+safeTelegramCall(() => telegramApp?.ready?.());
+safeTelegramCall(() => telegramApp?.expand?.());
+safeTelegramCall(() => telegramApp?.requestFullscreen?.());
+safeTelegramCall(() => telegramApp?.disableVerticalSwipes?.());
+safeTelegramCall(() => telegramApp?.enableClosingConfirmation?.());
+safeTelegramCall(() => telegramApp?.setHeaderColor?.("#f3f3f2"));
+safeTelegramCall(() => telegramApp?.setBackgroundColor?.("#f3f3f2"));
+safeTelegramCall(() => telegramApp?.setBottomBarColor?.("#f3f3f2"));
 setTelegramViewportVars();
-telegramApp?.onEvent?.("viewportChanged", setTelegramViewportVars);
+safeTelegramCall(() => telegramApp?.onEvent?.("viewportChanged", setTelegramViewportVars));
 window.visualViewport?.addEventListener("resize", setTelegramViewportVars);
 window.addEventListener("resize", setTelegramViewportVars);
 
