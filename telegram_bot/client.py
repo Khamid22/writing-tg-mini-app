@@ -19,8 +19,11 @@ class TelegramBotClient:
         if not self.enabled:
             return
         async with httpx.AsyncClient(timeout=10) as client:
-            response = await client.post(f"{self.base_url}/{method}", json=payload)
-            response.raise_for_status()
+            try:
+                response = await client.post(f"{self.base_url}/{method}", json=payload)
+                response.raise_for_status()
+            except httpx.HTTPError:
+                return
 
     async def send_message(self, chat_id: int | str, text: str, reply_markup: dict | None = None) -> None:
         payload: dict = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
