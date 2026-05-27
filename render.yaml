@@ -2,7 +2,7 @@ services:
   - type: web
     name: uzbek-words-mini-app
     runtime: docker
-    plan: starter
+    plan: free
     healthCheckPath: /health
     envVars:
       - key: APP_ENV
@@ -16,7 +16,7 @@ services:
       - key: TELEGRAM_BOT_TOKEN
         sync: false
       - key: TELEGRAM_WEBHOOK_SECRET
-        generateValue: true
+        sync: false
       - key: TELEGRAM_ADMIN_IDS
         sync: false
       - key: ALLOW_DEV_AUTH
@@ -30,7 +30,7 @@ services:
       - key: SEED_DEFAULT_WORDS
         value: "true"
       - key: MANUAL_PAYMENT_AMOUNT_UZS
-        value: "49000"
+        value: "10000"
       - key: MANUAL_PAYMENT_CARD_LABEL
         sync: false
       - key: MANUAL_PAYMENT_PLAN_DAYS
@@ -42,4 +42,4 @@ databases:
   - name: uzbek-words-db
     databaseName: uzbek_words
     user: uzbek_words_user
-    plan: starter
+    plan: free
