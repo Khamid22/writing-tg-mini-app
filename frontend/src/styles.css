@@ -8,8 +8,8 @@
   --tg-safe-bottom: 0px;
   --tg-content-safe-top: 0px;
   --tg-content-safe-bottom: 0px;
-  --tg-top-inset: max(var(--tg-safe-top), var(--tg-content-safe-top));
-  --tg-bottom-inset: max(var(--tg-safe-bottom), var(--tg-content-safe-bottom));
+  --tg-top-inset: calc(var(--tg-safe-top) + var(--tg-content-safe-top));
+  --tg-bottom-inset: calc(var(--tg-safe-bottom) + var(--tg-content-safe-bottom));
   --tg-nav-lift: clamp(48px, calc(var(--tg-bottom-inset) + 40px), 96px);
   font-synthesis: none;
   text-rendering: optimizeLegibility;

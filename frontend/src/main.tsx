@@ -28,8 +28,8 @@ function setTelegramViewportVars(): void {
   const safeArea = latestTelegramApp?.safeAreaInset ?? {};
   const contentSafeArea = latestTelegramApp?.contentSafeAreaInset ?? {};
   const root = document.documentElement;
-  const topInset = Math.max(safeArea.top ?? 0, contentSafeArea.top ?? 0);
-  const bottomInset = Math.max(safeArea.bottom ?? 0, contentSafeArea.bottom ?? 0);
+  const topInset = (safeArea.top ?? 0) + (contentSafeArea.top ?? 0);
+  const bottomInset = (safeArea.bottom ?? 0) + (contentSafeArea.bottom ?? 0);
 
   root.style.setProperty("--app-height", `${viewportHeight}px`);
   root.style.setProperty("--app-stable-height", `${stableHeight}px`);
