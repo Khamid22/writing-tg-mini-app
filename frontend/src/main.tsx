@@ -19,14 +19,17 @@ function usableViewportHeight(value: number | undefined): number | undefined {
 }
 
 function setTelegramViewportVars(): void {
+  const latestTelegramApp = window.Telegram?.WebApp;
   const viewportHeight =
-    usableViewportHeight(telegramApp?.viewportHeight) ??
+    usableViewportHeight(latestTelegramApp?.viewportHeight) ??
     usableViewportHeight(window.visualViewport?.height) ??
     window.innerHeight;
-  const stableHeight = usableViewportHeight(telegramApp?.viewportStableHeight) ?? viewportHeight;
-  const safeArea = telegramApp?.safeAreaInset ?? {};
-  const contentSafeArea = telegramApp?.contentSafeAreaInset ?? {};
+  const stableHeight = usableViewportHeight(latestTelegramApp?.viewportStableHeight) ?? viewportHeight;
+  const safeArea = latestTelegramApp?.safeAreaInset ?? {};
+  const contentSafeArea = latestTelegramApp?.contentSafeAreaInset ?? {};
   const root = document.documentElement;
+  const topInset = Math.max(safeArea.top ?? 0, contentSafeArea.top ?? 0);
+  const bottomInset = Math.max(safeArea.bottom ?? 0, contentSafeArea.bottom ?? 0);
 
   root.style.setProperty("--app-height", `${viewportHeight}px`);
   root.style.setProperty("--app-stable-height", `${stableHeight}px`);
@@ -34,6 +37,8 @@ function setTelegramViewportVars(): void {
   root.style.setProperty("--tg-safe-bottom", `${safeArea.bottom ?? 0}px`);
   root.style.setProperty("--tg-content-safe-top", `${contentSafeArea.top ?? 0}px`);
   root.style.setProperty("--tg-content-safe-bottom", `${contentSafeArea.bottom ?? 0}px`);
+  root.style.setProperty("--tg-top-inset", `${topInset}px`);
+  root.style.setProperty("--tg-bottom-inset", `${bottomInset}px`);
 }
 
 safeTelegramCall(() => telegramApp?.ready?.());
@@ -46,6 +51,8 @@ safeTelegramCall(() => telegramApp?.setBackgroundColor?.("#f3f3f2"));
 safeTelegramCall(() => telegramApp?.setBottomBarColor?.("#f3f3f2"));
 setTelegramViewportVars();
 safeTelegramCall(() => telegramApp?.onEvent?.("viewportChanged", setTelegramViewportVars));
+safeTelegramCall(() => telegramApp?.onEvent?.("safeAreaChanged", setTelegramViewportVars));
+safeTelegramCall(() => telegramApp?.onEvent?.("contentSafeAreaChanged", setTelegramViewportVars));
 window.visualViewport?.addEventListener("resize", setTelegramViewportVars);
 window.addEventListener("resize", setTelegramViewportVars);
 
