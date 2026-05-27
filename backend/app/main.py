@@ -45,6 +45,10 @@ def create_app() -> FastAPI:
     if frontend_dist.exists():
         app.mount("/assets", StaticFiles(directory=frontend_dist / "assets"), name="assets")
 
+        @app.get("/")
+        def frontend_root() -> FileResponse:
+            return FileResponse(frontend_dist / "index.html")
+
         @app.get("/{full_path:path}")
         def frontend_index(full_path: str) -> FileResponse:
             return FileResponse(frontend_dist / "index.html")
