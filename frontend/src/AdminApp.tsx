@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import type { JSX } from "react";
 import { BookOpen, Edit3, Eye, LayoutDashboard, ListFilter, LogOut, Plus, Save, Search, Trash2 } from "lucide-react";
 import type { AdminSummary, AdminWord, AdminWordInput } from "./adminApi";
-import { createAdminWord, disableAdminWord, fetchAdminSummary, fetchAdminWords, updateAdminWord } from "./adminApi";
+import { createAdminWord, disableAdminWord, fetchAdminSummary, fetchAdminWords, loginAdmin, updateAdminWord } from "./adminApi";
 import { Metric } from "./components/Metric";
 
-const ADMIN_TOKEN_KEY = "vocabhelper-admin-token";
+const ADMIN_SESSION_KEY = "vocabhelper-admin-session";
 
 type AdminTab = "dashboard" | "words" | "reading" | "writing" | "users" | "payments" | "settings";
 
@@ -52,8 +52,8 @@ function statusLabel(word: AdminWord | AdminWordInput): string {
 }
 
 export function AdminApp(): JSX.Element {
-  const [token, setToken] = useState(() => localStorage.getItem(ADMIN_TOKEN_KEY) ?? "");
-  const [draftToken, setDraftToken] = useState("");
+  const [token, setToken] = useState(() => localStorage.getItem(ADMIN_SESSION_KEY) ?? "");
+  const [password, setPassword] = useState("");
   const [activeTab, setActiveTab] = useState<AdminTab>("dashboard");
   const [summary, setSummary] = useState<AdminSummary | null>(null);
   const [words, setWords] = useState<AdminWord[]>([]);
@@ -67,16 +67,24 @@ export function AdminApp(): JSX.Element {
 
   const authenticated = token.trim().length > 0;
 
-  function saveToken(): void {
-    const next = draftToken.trim();
-    if (!next) return;
-    localStorage.setItem(ADMIN_TOKEN_KEY, next);
-    setToken(next);
-    setDraftToken("");
+  async function signIn(): Promise<void> {
+    if (!password.trim()) return;
+    setLoading(true);
+    setMessage("");
+    try {
+      const response = await loginAdmin(password);
+      localStorage.setItem(ADMIN_SESSION_KEY, response.token);
+      setToken(response.token);
+      setPassword("");
+    } catch {
+      setMessage("Password noto'g'ri yoki admin login sozlanmagan.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   function logout(): void {
-    localStorage.removeItem(ADMIN_TOKEN_KEY);
+    localStorage.removeItem(ADMIN_SESSION_KEY);
     setToken("");
     setSummary(null);
     setWords([]);
@@ -180,18 +188,20 @@ export function AdminApp(): JSX.Element {
             <span>VocabHelper Admin</span>
           </div>
           <h1>Admin panel</h1>
-          <p>Content qo'shish va boshqarish uchun admin token kiriting.</p>
+          <p>Content qo'shish va boshqarish uchun admin password kiriting.</p>
+          {message ? <div className="admin-message">{message}</div> : null}
           <input
             className="admin-input"
             type="password"
-            placeholder="Admin token"
-            value={draftToken}
-            onChange={(event) => setDraftToken(event.target.value)}
+            autoComplete="current-password"
+            placeholder="Admin password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key === "Enter") saveToken();
+              if (event.key === "Enter") void signIn();
             }}
           />
-          <button className="admin-button primary-button" type="button" onClick={saveToken}>
+          <button className="admin-button primary-button" type="button" disabled={loading} onClick={() => void signIn()}>
             Kirish
           </button>
         </section>

@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
+import json
+import time
+from base64 import urlsafe_b64decode, urlsafe_b64encode
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
@@ -13,6 +18,53 @@ from app.models import LearnerUser, PaymentRequest, PaymentStatus, WordItem
 from app.routes.words import word_payload
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
+_ADMIN_SESSION_TTL = 7 * 24 * 3600
+
+
+def _b64encode(data: bytes) -> str:
+    return urlsafe_b64encode(data).decode().rstrip("=")
+
+
+def _b64decode(data: str) -> bytes:
+    padding = "=" * (-len(data) % 4)
+    return urlsafe_b64decode(data + padding)
+
+
+def _admin_login_secret() -> str:
+    settings = get_settings()
+    return settings.admin_password or settings.admin_approval_token
+
+
+def _create_admin_session() -> str:
+    settings = get_settings()
+    now = int(time.time())
+    payload = {"sub": "admin", "iat": now, "exp": now + _ADMIN_SESSION_TTL}
+    encoded_payload = _b64encode(json.dumps(payload, separators=(",", ":")).encode())
+    signature = hmac.new(settings.secret_key.encode(), encoded_payload.encode(), hashlib.sha256).digest()
+    return f"{encoded_payload}.{_b64encode(signature)}"
+
+
+def _verify_admin_session(token: str) -> None:
+    try:
+        encoded_payload, received_signature = token.split(".", 1)
+    except ValueError as exc:
+        raise HTTPException(status_code=403, detail="Invalid admin session") from exc
+
+    settings = get_settings()
+    expected_signature = hmac.new(settings.secret_key.encode(), encoded_payload.encode(), hashlib.sha256).digest()
+    if not hmac.compare_digest(_b64encode(expected_signature), received_signature):
+        raise HTTPException(status_code=403, detail="Invalid admin session")
+
+    try:
+        payload = json.loads(_b64decode(encoded_payload))
+        if payload.get("sub") != "admin" or int(time.time()) > payload.get("exp", 0):
+            raise HTTPException(status_code=403, detail="Admin session expired")
+    except (KeyError, ValueError, TypeError, json.JSONDecodeError) as exc:
+        raise HTTPException(status_code=403, detail="Invalid admin session") from exc
+
+
+class AdminLoginRequest(BaseModel):
+    password: str = Field(min_length=1)
 
 
 class AdminWordPayload(BaseModel):
@@ -41,12 +93,17 @@ class AdminWordPatch(BaseModel):
     is_active: bool | None = None
 
 
-def require_admin_token(x_admin_token: str | None = Header(default=None, alias="X-Admin-Token")) -> None:
+def require_admin_token(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    x_admin_token: str | None = Header(default=None, alias="X-Admin-Token"),
+) -> None:
     settings = get_settings()
-    if not settings.admin_approval_token:
-        raise HTTPException(status_code=403, detail="Admin token is not configured")
-    if x_admin_token != settings.admin_approval_token:
-        raise HTTPException(status_code=403, detail="Invalid admin token")
+    if authorization and authorization.lower().startswith("bearer "):
+        _verify_admin_session(authorization.split(" ", 1)[1].strip())
+        return
+    if settings.admin_approval_token and x_admin_token == settings.admin_approval_token:
+        return
+    raise HTTPException(status_code=403, detail="Invalid admin session")
 
 
 def admin_word_payload(word: WordItem) -> dict:
@@ -54,6 +111,16 @@ def admin_word_payload(word: WordItem) -> dict:
     payload["is_active"] = word.is_active
     payload["created_at"] = word.created_at.isoformat() if word.created_at else None
     return payload
+
+
+@router.post("/login")
+def admin_login(payload: AdminLoginRequest) -> dict:
+    expected_password = _admin_login_secret()
+    if not expected_password:
+        raise HTTPException(status_code=403, detail="Admin password is not configured")
+    if not hmac.compare_digest(payload.password, expected_password):
+        raise HTTPException(status_code=403, detail="Invalid admin password")
+    return {"token": _create_admin_session()}
 
 
 @router.get("/summary")

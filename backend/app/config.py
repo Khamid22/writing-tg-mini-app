@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     manual_payment_card_label: str = Field(default="Card number will be configured soon", alias="MANUAL_PAYMENT_CARD_LABEL")
     manual_payment_plan_days: int = Field(default=30, alias="MANUAL_PAYMENT_PLAN_DAYS")
     admin_approval_token: str = Field(default="", alias="ADMIN_APPROVAL_TOKEN")
+    admin_password: str = Field(default="", alias="ADMIN_PASSWORD")
 
     @property
     def cors_origin_list(self) -> list[str]:

@@ -38,6 +38,10 @@ export type AdminSummary = {
   recent_words: AdminWord[];
 };
 
+export type AdminLoginResponse = {
+  token: string;
+};
+
 function apiBaseUrl(): string {
   const configured = import.meta.env.VITE_API_BASE_URL as string | undefined;
   if (configured) return configured.replace(/\/$/, "");
@@ -52,7 +56,7 @@ async function adminFetch<T>(path: string, adminToken: string, options: RequestI
     ...options,
     headers: {
       "Content-Type": "application/json",
-      "X-Admin-Token": adminToken,
+      Authorization: `Bearer ${adminToken}`,
       ...(options.headers ?? {}),
     },
   });
@@ -60,6 +64,20 @@ async function adminFetch<T>(path: string, adminToken: string, options: RequestI
     throw new Error(`Admin API ${response.status}`);
   }
   return response.json() as Promise<T>;
+}
+
+export async function loginAdmin(password: string): Promise<AdminLoginResponse> {
+  const response = await fetch(`${apiBaseUrl()}/api/admin/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ password }),
+  });
+  if (!response.ok) {
+    throw new Error(`Admin login ${response.status}`);
+  }
+  return response.json() as Promise<AdminLoginResponse>;
 }
 
 export async function fetchAdminSummary(adminToken: string): Promise<AdminSummary> {
