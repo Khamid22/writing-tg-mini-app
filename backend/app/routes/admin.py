@@ -7,18 +7,28 @@ import io
 import json
 import time
 from base64 import urlsafe_b64decode, urlsafe_b64encode
+from datetime import date, datetime, timedelta, timezone
 from typing import Literal
 
 import httpx
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field
-from sqlalchemy import func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy import Date as SqlDate, cast, func, or_, select
+from sqlalchemy.orm import Session, selectinload
 
-from app.config import get_settings
+from app.config import get_settings, update_settings
 from app.db.session import get_db
-from app.models import LearnerUser, PaymentRequest, PaymentStatus, WordItem
+from app.models import (
+    LearnerDailyUsage,
+    LearnerProgress,
+    LearnerUser,
+    PaymentRequest,
+    PaymentStatus,
+    PointsEvent,
+    WordItem,
+)
 from app.routes.words import word_payload
+from app.services.payments import approve_payment, cancel_payment
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 _ADMIN_SESSION_TTL = 7 * 24 * 3600
@@ -397,3 +407,291 @@ def disable_admin_word(
     db.commit()
     db.refresh(word)
     return admin_word_payload(word)
+
+
+# ───────────── Pydantic models for new endpoints ─────────────
+
+class AdminUserPatch(BaseModel):
+    tier: Literal["free", "paid"] | None = None
+    premium_until: str | None = None  # ISO datetime string, or empty string to clear
+
+
+class AdminSettingsPatch(BaseModel):
+    free_daily_word_limit: int | None = Field(default=None, ge=1, le=100)
+    manual_payment_amount_uzs: int | None = Field(default=None, ge=1000)
+    manual_payment_plan_days: int | None = Field(default=None, ge=1, le=365)
+    manual_payment_card_label: str | None = Field(default=None, min_length=1, max_length=200)
+
+
+# ───────────── Helpers ─────────────
+
+def _user_payload(user: LearnerUser, learned_count: int = 0, total_points: int = 0) -> dict:
+    return {
+        "id": user.id,
+        "display_name": user.display_name,
+        "username": user.username,
+        "tier": user.tier,
+        "premium_until": user.premium_until.isoformat() if user.premium_until else None,
+        "streak_days": user.streak_days,
+        "last_seen_at": user.last_seen_at.isoformat() if user.last_seen_at else None,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
+        "learned_count": learned_count,
+        "total_points": total_points,
+    }
+
+
+def _payment_admin_payload(payment: PaymentRequest) -> dict:
+    u = payment.user
+    return {
+        "id": payment.id,
+        "code": payment.code,
+        "user_id": payment.user_id,
+        "user_display_name": u.display_name if u else "—",
+        "user_username": u.username if u else None,
+        "plan": payment.plan,
+        "plan_days": payment.plan_days,
+        "amount_uzs": payment.amount_uzs,
+        "status": payment.status,
+        "admin_note": payment.admin_note,
+        "created_at": payment.created_at.isoformat() if payment.created_at else None,
+        "submitted_at": payment.submitted_at.isoformat() if payment.submitted_at else None,
+        "approved_at": payment.approved_at.isoformat() if payment.approved_at else None,
+        "cancelled_at": payment.cancelled_at.isoformat() if payment.cancelled_at else None,
+        "expires_at": payment.expires_at.isoformat() if payment.expires_at else None,
+    }
+
+
+def _fill_date_series(rows: list[tuple[date, int]], days: int) -> list[dict]:
+    data_map = {str(r[0]): r[1] for r in rows}
+    today = datetime.now(timezone.utc).date()
+    return [
+        {"date": str(today - timedelta(days=days - 1 - i)), "count": data_map.get(str(today - timedelta(days=days - 1 - i)), 0)}
+        for i in range(days)
+    ]
+
+
+# ───────────── Users endpoints ─────────────
+
+@router.get("/users")
+def admin_users_list(
+    search: str = "",
+    tier: str = "",
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin_token),
+) -> dict:
+    learned_subq = (
+        select(LearnerProgress.user_id, func.count(LearnerProgress.id).label("learned_count"))
+        .where(LearnerProgress.status.in_(["learned", "mastered"]))
+        .group_by(LearnerProgress.user_id)
+        .subquery()
+    )
+    points_subq = (
+        select(PointsEvent.user_id, func.coalesce(func.sum(PointsEvent.points), 0).label("total_points"))
+        .group_by(PointsEvent.user_id)
+        .subquery()
+    )
+    base_q = (
+        select(
+            LearnerUser,
+            func.coalesce(learned_subq.c.learned_count, 0).label("learned_count"),
+            func.coalesce(points_subq.c.total_points, 0).label("total_points"),
+        )
+        .outerjoin(learned_subq, LearnerUser.id == learned_subq.c.user_id)
+        .outerjoin(points_subq, LearnerUser.id == points_subq.c.user_id)
+    )
+    if search.strip():
+        term = f"%{search.strip()}%"
+        base_q = base_q.where(or_(LearnerUser.display_name.ilike(term), LearnerUser.username.ilike(term)))
+    if tier in ("free", "paid"):
+        base_q = base_q.where(LearnerUser.tier == tier)
+
+    total = db.scalar(select(func.count(LearnerUser.id))) or 0
+    rows = db.execute(base_q.order_by(LearnerUser.created_at.desc()).limit(limit).offset(offset)).all()
+    return {
+        "total": total,
+        "items": [_user_payload(row[0], int(row[1]), int(row[2])) for row in rows],
+    }
+
+
+@router.get("/users/{user_id}")
+def admin_user_detail(
+    user_id: int,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin_token),
+) -> dict:
+    user = db.get(LearnerUser, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    learned_count = db.scalar(
+        select(func.count(LearnerProgress.id)).where(
+            LearnerProgress.user_id == user_id,
+            LearnerProgress.status.in_(["learned", "mastered"]),
+        )
+    ) or 0
+    mastered_count = db.scalar(
+        select(func.count(LearnerProgress.id)).where(
+            LearnerProgress.user_id == user_id,
+            LearnerProgress.status == "mastered",
+        )
+    ) or 0
+    total_points = db.scalar(
+        select(func.coalesce(func.sum(PointsEvent.points), 0)).where(PointsEvent.user_id == user_id)
+    ) or 0
+    quiz_count = db.scalar(
+        select(func.count(LearnerProgress.id)).where(
+            LearnerProgress.user_id == user_id,
+            LearnerProgress.times_answered > 0,
+        )
+    ) or 0
+    correct_answers = db.scalar(
+        select(func.coalesce(func.sum(LearnerProgress.times_correct), 0)).where(LearnerProgress.user_id == user_id)
+    ) or 0
+    total_answers = db.scalar(
+        select(func.coalesce(func.sum(LearnerProgress.times_answered), 0)).where(LearnerProgress.user_id == user_id)
+    ) or 0
+    accuracy = round(correct_answers / total_answers * 100) if total_answers else 0
+    base = _user_payload(user, int(learned_count), int(total_points))
+    base.update({
+        "mastered_count": int(mastered_count),
+        "quiz_attempted": int(quiz_count),
+        "quiz_accuracy": accuracy,
+    })
+    return base
+
+
+@router.patch("/users/{user_id}")
+def admin_update_user(
+    user_id: int,
+    payload: AdminUserPatch,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin_token),
+) -> dict:
+    user = db.get(LearnerUser, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if payload.tier is not None:
+        user.tier = payload.tier
+    if payload.premium_until is not None:
+        if payload.premium_until == "":
+            user.premium_until = None
+        else:
+            try:
+                user.premium_until = datetime.fromisoformat(payload.premium_until)
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail="Invalid datetime format") from exc
+    db.commit()
+    db.refresh(user)
+    return _user_payload(user)
+
+
+# ───────────── Payments endpoints ─────────────
+
+@router.get("/payments")
+def admin_payments_list(
+    status: str = "all",
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin_token),
+) -> dict:
+    q = select(PaymentRequest).options(selectinload(PaymentRequest.user))
+    if status != "all":
+        q = q.where(PaymentRequest.status == status)
+
+    total = db.scalar(select(func.count(PaymentRequest.id)).where(
+        PaymentRequest.status == status if status != "all" else True
+    )) or 0
+    payments = list(db.scalars(q.order_by(PaymentRequest.created_at.desc()).limit(limit).offset(offset)))
+
+    pending_count = db.scalar(select(func.count(PaymentRequest.id)).where(PaymentRequest.status == PaymentStatus.PENDING.value)) or 0
+    submitted_count = db.scalar(select(func.count(PaymentRequest.id)).where(PaymentRequest.status == PaymentStatus.SUBMITTED.value)) or 0
+    approved_count = db.scalar(select(func.count(PaymentRequest.id)).where(PaymentRequest.status == PaymentStatus.APPROVED.value)) or 0
+    cancelled_count = db.scalar(select(func.count(PaymentRequest.id)).where(PaymentRequest.status == PaymentStatus.CANCELLED.value)) or 0
+
+    return {
+        "total": total,
+        "counts": {
+            "pending": int(pending_count),
+            "submitted": int(submitted_count),
+            "approved": int(approved_count),
+            "cancelled": int(cancelled_count),
+        },
+        "items": [_payment_admin_payload(p) for p in payments],
+    }
+
+
+@router.post("/payments/{code}/approve")
+def admin_approve_payment_session(
+    code: str,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin_token),
+) -> dict:
+    payment = approve_payment(db, code, admin_id="admin-panel")
+    return _payment_admin_payload(payment)
+
+
+@router.post("/payments/{code}/cancel")
+def admin_cancel_payment_session(
+    code: str,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin_token),
+) -> dict:
+    payment = cancel_payment(db, code, admin_id="admin-panel")
+    return _payment_admin_payload(payment)
+
+
+# ───────────── Analytics endpoints ─────────────
+
+@router.get("/analytics")
+def admin_analytics(
+    days: int = Query(default=30, ge=7, le=90),
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin_token),
+) -> dict:
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    cutoff_date = cutoff.date()
+
+    signup_rows = db.execute(
+        select(cast(LearnerUser.created_at, SqlDate).label("day"), func.count(LearnerUser.id).label("cnt"))
+        .where(LearnerUser.created_at >= cutoff)
+        .group_by(cast(LearnerUser.created_at, SqlDate))
+        .order_by(cast(LearnerUser.created_at, SqlDate))
+    ).all()
+
+    dau_rows = db.execute(
+        select(LearnerDailyUsage.usage_date.label("day"), func.count(LearnerDailyUsage.user_id.distinct()).label("cnt"))
+        .where(LearnerDailyUsage.usage_date >= cutoff_date)
+        .group_by(LearnerDailyUsage.usage_date)
+        .order_by(LearnerDailyUsage.usage_date)
+    ).all()
+
+    return {
+        "signups": _fill_date_series([(r[0], r[1]) for r in signup_rows], days),
+        "dau": _fill_date_series([(r[0], r[1]) for r in dau_rows], days),
+    }
+
+
+# ───────────── Settings endpoints ─────────────
+
+@router.get("/settings")
+def admin_get_settings(_: None = Depends(require_admin_token)) -> dict:
+    s = get_settings()
+    return {
+        "free_daily_word_limit": s.free_daily_word_limit,
+        "manual_payment_amount_uzs": s.manual_payment_amount_uzs,
+        "manual_payment_plan_days": s.manual_payment_plan_days,
+        "manual_payment_card_label": s.manual_payment_card_label,
+    }
+
+
+@router.patch("/settings")
+def admin_patch_settings(
+    payload: AdminSettingsPatch,
+    _: None = Depends(require_admin_token),
+) -> dict:
+    overrides = payload.model_dump(exclude_none=True)
+    if overrides:
+        update_settings(**overrides)
+    return admin_get_settings(_=None)

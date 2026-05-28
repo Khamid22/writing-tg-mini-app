@@ -56,6 +56,70 @@ export type AdminLoginResponse = {
   token: string;
 };
 
+export type AdminUser = {
+  id: number;
+  display_name: string;
+  username: string | null;
+  tier: "free" | "paid";
+  premium_until: string | null;
+  streak_days: number;
+  last_seen_at: string | null;
+  created_at: string | null;
+  learned_count: number;
+  total_points: number;
+};
+
+export type AdminUserDetail = AdminUser & {
+  mastered_count: number;
+  quiz_attempted: number;
+  quiz_accuracy: number;
+};
+
+export type AdminUsersResponse = {
+  total: number;
+  items: AdminUser[];
+};
+
+export type AdminPayment = {
+  id: number;
+  code: string;
+  user_id: number;
+  user_display_name: string;
+  user_username: string | null;
+  plan: string;
+  plan_days: number;
+  amount_uzs: number;
+  status: "pending" | "submitted" | "approved" | "cancelled" | "expired";
+  admin_note: string | null;
+  created_at: string | null;
+  submitted_at: string | null;
+  approved_at: string | null;
+  cancelled_at: string | null;
+  expires_at: string | null;
+};
+
+export type AdminPaymentsResponse = {
+  total: number;
+  counts: { pending: number; submitted: number; approved: number; cancelled: number };
+  items: AdminPayment[];
+};
+
+export type AnalyticsPoint = { date: string; count: number };
+
+export type AdminAnalytics = {
+  signups: AnalyticsPoint[];
+  dau: AnalyticsPoint[];
+};
+
+export type AdminSettings = {
+  free_daily_word_limit: number;
+  manual_payment_amount_uzs: number;
+  manual_payment_plan_days: number;
+  manual_payment_card_label: string;
+};
+
+export type AdminSettingsPatch = Partial<AdminSettings>;
+
 export type AdminImportResponse = {
   imported: number;
   skipped: string[];
@@ -164,5 +228,76 @@ export async function importAdminWordsUrl(
   return adminFetch<AdminImportResponse>("/api/admin/words/import-url", adminToken, {
     method: "POST",
     body: JSON.stringify({ url, default_active: defaultActive }),
+  });
+}
+
+// ── Users ──
+
+export async function fetchAdminUsers(
+  adminToken: string,
+  filters: { search?: string; tier?: string; limit?: number; offset?: number } = {},
+): Promise<AdminUsersResponse> {
+  const params = new URLSearchParams();
+  if (filters.search) params.set("search", filters.search);
+  if (filters.tier) params.set("tier", filters.tier);
+  if (filters.limit !== undefined) params.set("limit", String(filters.limit));
+  if (filters.offset !== undefined) params.set("offset", String(filters.offset));
+  const q = params.toString();
+  return adminFetch<AdminUsersResponse>(`/api/admin/users${q ? `?${q}` : ""}`, adminToken);
+}
+
+export async function fetchAdminUserDetail(adminToken: string, userId: number): Promise<AdminUserDetail> {
+  return adminFetch<AdminUserDetail>(`/api/admin/users/${userId}`, adminToken);
+}
+
+export async function updateAdminUser(
+  adminToken: string,
+  userId: number,
+  payload: { tier?: "free" | "paid"; premium_until?: string },
+): Promise<AdminUser> {
+  return adminFetch<AdminUser>(`/api/admin/users/${userId}`, adminToken, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+// ── Payments ──
+
+export async function fetchAdminPayments(
+  adminToken: string,
+  filters: { status?: string; limit?: number; offset?: number } = {},
+): Promise<AdminPaymentsResponse> {
+  const params = new URLSearchParams();
+  if (filters.status && filters.status !== "all") params.set("status", filters.status);
+  if (filters.limit !== undefined) params.set("limit", String(filters.limit));
+  if (filters.offset !== undefined) params.set("offset", String(filters.offset));
+  const q = params.toString();
+  return adminFetch<AdminPaymentsResponse>(`/api/admin/payments${q ? `?${q}` : ""}`, adminToken);
+}
+
+export async function approveAdminPayment(adminToken: string, code: string): Promise<AdminPayment> {
+  return adminFetch<AdminPayment>(`/api/admin/payments/${code}/approve`, adminToken, { method: "POST" });
+}
+
+export async function cancelAdminPayment(adminToken: string, code: string): Promise<AdminPayment> {
+  return adminFetch<AdminPayment>(`/api/admin/payments/${code}/cancel`, adminToken, { method: "POST" });
+}
+
+// ── Analytics ──
+
+export async function fetchAdminAnalytics(adminToken: string, days = 30): Promise<AdminAnalytics> {
+  return adminFetch<AdminAnalytics>(`/api/admin/analytics?days=${days}`, adminToken);
+}
+
+// ── Settings ──
+
+export async function fetchAdminSettings(adminToken: string): Promise<AdminSettings> {
+  return adminFetch<AdminSettings>("/api/admin/settings", adminToken);
+}
+
+export async function patchAdminSettings(adminToken: string, payload: AdminSettingsPatch): Promise<AdminSettings> {
+  return adminFetch<AdminSettings>("/api/admin/settings", adminToken, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
   });
 }

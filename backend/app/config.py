@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from functools import lru_cache
 from pathlib import Path
 
 from pydantic import Field
@@ -66,6 +65,17 @@ class Settings(BaseSettings):
         return self.app_env.lower() in {"prod", "production"}
 
 
-@lru_cache
+_settings_instance: Settings | None = None
+
+
 def get_settings() -> Settings:
-    return Settings()
+    global _settings_instance
+    if _settings_instance is None:
+        _settings_instance = Settings()
+    return _settings_instance
+
+
+def update_settings(**kwargs: object) -> Settings:
+    global _settings_instance
+    _settings_instance = get_settings().model_copy(update=kwargs)
+    return _settings_instance
