@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api/mini/tests", tags=["tests"])
 
 @router.post("/start", response_model=StartTestResponse)
 def start(payload: StartTestRequest, user: LearnerUser = Depends(current_user), db: Session = Depends(get_db)) -> dict:
-    attempt, answers = start_quiz(db, user, payload.question_count, payload.mode)
+    attempt, answers = start_quiz(db, user, payload.question_count, payload.mode, collection=payload.collection)
     if attempt.id is None:
         return {"attempt": {"id": None, "total_questions": 0}, "questions": []}
     return {

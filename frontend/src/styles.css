@@ -3800,3 +3800,154 @@ h2 {
     transition: none;
   }
 }
+
+/* ── Courses screen ── */
+.courses-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-bottom: 24px;
+}
+
+.courses-intro h2 {
+  margin: 0 0 4px;
+  font-size: 1.1rem;
+}
+.courses-intro p {
+  margin: 0;
+  color: #6b6259;
+  font-size: 0.88rem;
+}
+
+.course-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.course-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid #d9d4ca;
+  background: #ffffff;
+  cursor: pointer;
+  transition: border-color 140ms ease, transform 80ms ease, box-shadow 140ms ease;
+  font-family: inherit;
+  color: inherit;
+}
+.course-card:hover {
+  border-color: #1a1814;
+  box-shadow: 0 4px 14px rgba(26, 24, 20, 0.06);
+}
+.course-card:active {
+  transform: scale(0.99);
+}
+.course-card[data-active="true"] {
+  border-color: #1a1814;
+  background: #fafaf6;
+  box-shadow: inset 3px 0 0 #1a1814;
+}
+.course-card[data-locked="true"] {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+.course-card[data-locked="true"]:hover {
+  border-color: #d9d4ca;
+  box-shadow: none;
+}
+
+.course-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.course-card-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.course-card-title strong {
+  font-size: 1rem;
+  color: #1a1814;
+}
+.course-card-level {
+  font-size: 0.72rem;
+  color: #6b6259;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.course-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: #fef3c7;
+  color: #92400e;
+  white-space: nowrap;
+}
+.course-card-badge.active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.course-card-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.course-card-progress .progress-bar {
+  flex: 1;
+  margin-top: 0;
+  height: 6px;
+}
+.course-card-progress > span {
+  font-size: 0.78rem;
+  color: #6b6259;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.course-card-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #1a1814;
+}
+
+.courses-clear {
+  align-self: center;
+}
+
+/* ── Active-course chip (shown on Learn / Test) ── */
+.course-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #fafaf6;
+  border: 1px solid #d9d4ca;
+  font-size: 0.78rem;
+  color: #1a1814;
+  margin-bottom: 4px;
+}
+.course-chip-label {
+  color: #6b6259;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.course-chip strong {
+  font-weight: 600;
+}

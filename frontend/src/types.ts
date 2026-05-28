@@ -33,6 +33,7 @@ export type LearnerState = {
   paymentRequest?: PaymentRequest;
   streak: number;
   lastLearningDate?: string;
+  activeCollection?: string | null;
   progress: Record<number, WordProgress>;
   dailyUsage: Record<string, number>;
   quizHistory: Array<{

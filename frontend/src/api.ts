@@ -112,6 +112,19 @@ export type PublicProfileResponse = {
   recent_words: ApiWord[];
 };
 
+export type ApiCollection = {
+  name: string;
+  total_words: number;
+  learned_count: number;
+  level_range: string;
+  is_locked: boolean;
+};
+
+export type CollectionsResponse = {
+  items: ApiCollection[];
+  free_collection_name: string;
+};
+
 type AuthResponse = {
   user: ApiUser;
   token: string;
@@ -180,8 +193,13 @@ export async function authenticateTelegram(initData: string): Promise<AuthRespon
   return response;
 }
 
-export async function fetchTodayWord(): Promise<TodayWordResponse> {
-  return apiFetch<TodayWordResponse>("/api/mini/words/today");
+export async function fetchTodayWord(collection?: string | null): Promise<TodayWordResponse> {
+  const query = collection ? `?collection=${encodeURIComponent(collection)}` : "";
+  return apiFetch<TodayWordResponse>(`/api/mini/words/today${query}`);
+}
+
+export async function fetchCollections(): Promise<CollectionsResponse> {
+  return apiFetch<CollectionsResponse>("/api/mini/collections");
 }
 
 export async function sendWordEvent(wordId: number, event: WordEvent): Promise<WordEventResponse> {
@@ -191,10 +209,14 @@ export async function sendWordEvent(wordId: number, event: WordEvent): Promise<W
   });
 }
 
-export async function startTest(questionCount: number = 5, mode: string = "learned_words"): Promise<StartTestResponse> {
+export async function startTest(
+  questionCount: number = 5,
+  mode: string = "learned_words",
+  collection?: string | null,
+): Promise<StartTestResponse> {
   return apiFetch<StartTestResponse>("/api/mini/tests/start", {
     method: "POST",
-    body: JSON.stringify({ question_count: questionCount, mode }),
+    body: JSON.stringify({ question_count: questionCount, mode, collection: collection ?? null }),
   });
 }
 

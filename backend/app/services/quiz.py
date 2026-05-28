@@ -32,21 +32,31 @@ def _pick_quiz_words(
     return (weak + strong)[: max(1, min(question_count, len(candidates)))]
 
 
-def start_quiz(db: Session, user: LearnerUser, question_count: int, mode: str) -> tuple[QuizAttempt, list[QuizAnswer]]:
-    candidates = list(
-        db.execute(
-            select(WordItem, LearnerProgress.mastery_score)
-            .join(LearnerProgress, LearnerProgress.word_item_id == WordItem.id)
-            .where(
-                LearnerProgress.user_id == user.id,
-                LearnerProgress.status.in_([ProgressStatus.LEARNED.value, ProgressStatus.MASTERED.value]),
-            )
-        ).all()
+def start_quiz(
+    db: Session,
+    user: LearnerUser,
+    question_count: int,
+    mode: str,
+    collection: str | None = None,
+) -> tuple[QuizAttempt, list[QuizAnswer]]:
+    candidates_q = (
+        select(WordItem, LearnerProgress.mastery_score)
+        .join(LearnerProgress, LearnerProgress.word_item_id == WordItem.id)
+        .where(
+            LearnerProgress.user_id == user.id,
+            LearnerProgress.status.in_([ProgressStatus.LEARNED.value, ProgressStatus.MASTERED.value]),
+        )
     )
+    if collection:
+        candidates_q = candidates_q.where(WordItem.collection == collection)
+    candidates = list(db.execute(candidates_q).all())
     if not candidates:
         return QuizAttempt(user_id=user.id, mode=mode, total_questions=0), []
 
-    all_words = list(db.scalars(select(WordItem).where(WordItem.is_active.is_(True))))
+    distractor_q = select(WordItem).where(WordItem.is_active.is_(True))
+    if collection:
+        distractor_q = distractor_q.where(WordItem.collection == collection)
+    all_words = list(db.scalars(distractor_q))
     selected_words = _pick_quiz_words(candidates, question_count)
     attempt = QuizAttempt(user_id=user.id, mode=mode, total_questions=len(selected_words))
     db.add(attempt)

@@ -29,6 +29,7 @@ class Settings(BaseSettings):
         alias="CORS_ORIGINS",
     )
     free_daily_word_limit: int = Field(default=10, alias="FREE_DAILY_WORD_LIMIT")
+    free_collection_name: str = Field(default="Daily Vocabulary", alias="FREE_COLLECTION_NAME")
     default_timezone: str = Field(default="Asia/Tashkent", alias="DEFAULT_TIMEZONE")
     seed_default_words: bool = Field(default=True, alias="SEED_DEFAULT_WORDS")
     manual_payment_amount_uzs: int = Field(default=49000, alias="MANUAL_PAYMENT_AMOUNT_UZS")

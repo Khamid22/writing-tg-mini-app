@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { JSX } from "react";
-import { BarChart3, BookOpen, Crown, GraduationCap, Medal, User } from "lucide-react";
+import { BarChart3, BookMarked, BookOpen, Crown, GraduationCap, Medal, User } from "lucide-react";
 import { applyApiUser, authenticateTelegram, clearStoredToken, getStoredToken } from "./api";
 import { DAILY_FREE_LIMIT } from "./data";
 import { clearState, dailyUsed, loadState, saveState } from "./storage";
@@ -12,14 +12,16 @@ import { TestScreen } from "./screens/TestScreen";
 import { DashboardScreen } from "./screens/DashboardScreen";
 import { LeaderboardScreen } from "./screens/LeaderboardScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
+import { CoursesScreen } from "./screens/CoursesScreen";
 import { PublicProfile } from "./components/PublicProfile";
 
-type Tab = "learn" | "test" | "dashboard" | "leaders" | "profile";
+type Tab = "learn" | "test" | "courses" | "dashboard" | "leaders" | "profile";
 type EntryScreen = "landing" | "register" | "app";
 
 const navItems: Array<{ tab: Tab; label: string; icon: typeof BookOpen }> = [
   { tab: "learn", label: "O'rganish", icon: BookOpen },
   { tab: "test", label: "Test", icon: GraduationCap },
+  { tab: "courses", label: "Kurslar", icon: BookMarked },
   { tab: "dashboard", label: "Natija", icon: BarChart3 },
   { tab: "leaders", label: "Reyting", icon: Medal },
   { tab: "profile", label: "Profil", icon: User },
@@ -98,6 +100,16 @@ export function App(): JSX.Element {
         ) : null}
         {activeTab === "test" ? (
           <TestScreen state={state} updateState={updateState} apiToken={apiToken} />
+        ) : null}
+        {activeTab === "courses" ? (
+          <CoursesScreen
+            apiToken={apiToken}
+            activeCollection={state.activeCollection ?? null}
+            onSelect={(collection) => {
+              updateState((current) => ({ ...current, activeCollection: collection }));
+              setActiveTab("learn");
+            }}
+          />
         ) : null}
         {activeTab === "dashboard" ? (
           <DashboardScreen state={state} apiToken={apiToken} />

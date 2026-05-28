@@ -30,11 +30,13 @@ export function LearnScreen({
     }));
   }
 
+  const activeCollection = state.activeCollection ?? null;
+
   // Silent fetch: keeps the current card mounted so CSS transitions survive
   function fetchNext(initial = false): void {
     if (fetching.current) return;
     fetching.current = true;
-    fetchTodayWord()
+    fetchTodayWord(activeCollection)
       .then(({ item, is_review, limit: newLimit }) => {
         setWord(item);
         setIsReview(is_review);
@@ -54,7 +56,8 @@ export function LearnScreen({
   useEffect(() => {
     if (!apiToken) return;
     fetchNext(true);
-  }, [apiToken]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiToken, activeCollection]);
 
   function recordEvent(eventName: WordEvent): void {
     if (!word) return;
@@ -140,6 +143,12 @@ export function LearnScreen({
 
   return (
     <section className="learn-layout">
+      {activeCollection ? (
+        <div className="course-chip" aria-label="Active course">
+          <span className="course-chip-label">Kurs:</span>
+          <strong>{activeCollection}</strong>
+        </div>
+      ) : null}
       <div className="daily-strip">
         <span>
           {isReview

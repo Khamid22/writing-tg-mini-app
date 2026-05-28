@@ -22,15 +22,17 @@ export function TestScreen({
   apiToken: string | null;
 }): JSX.Element {
   const [quiz, setQuiz] = useState<QuizState>({ phase: "idle" });
+  const activeCollection = state.activeCollection ?? null;
 
   useEffect(() => {
-    if (!apiToken || quiz.phase !== "idle") return;
+    if (!apiToken) return;
     begin();
-  }, [apiToken]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiToken, activeCollection]);
 
   function begin(): void {
     setQuiz({ phase: "loading" });
-    startTest(5, "learned_words")
+    startTest(5, "learned_words", activeCollection)
       .then(({ attempt, questions }) => {
         if (!attempt.id || questions.length === 0) {
           setQuiz({ phase: "empty" });
@@ -127,6 +129,12 @@ export function TestScreen({
 
   return (
     <section className="test-layout">
+      {activeCollection ? (
+        <div className="course-chip" aria-label="Active course">
+          <span className="course-chip-label">Kurs:</span>
+          <strong>{activeCollection}</strong>
+        </div>
+      ) : null}
       <div className="question-count">
         <span>Savol {quiz.index + 1}</span>
         <strong>{quiz.index + 1}/{quiz.questions.length}</strong>

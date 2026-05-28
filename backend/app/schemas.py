@@ -77,6 +77,7 @@ class WordEventResponse(BaseModel):
 class StartTestRequest(BaseModel):
     question_count: int = Field(default=5, ge=1, le=20)
     mode: str = "learned_words"
+    collection: str | None = None
 
 
 class QuizQuestionPayload(BaseModel):

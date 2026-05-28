@@ -30,46 +30,45 @@ REVIEW_EVENTS = {"remembered", "forgot"}
 KNOWN_EVENTS = {"seen", "listened", "flipped", "learned", "practice_later"} | REVIEW_EVENTS
 
 
-def next_word_for_user(db: Session, user: LearnerUser) -> tuple[WordItem | None, bool]:
+def next_word_for_user(
+    db: Session,
+    user: LearnerUser,
+    collection: str | None = None,
+) -> tuple[WordItem | None, bool]:
     """Return (word, is_review). New unlearned words come first; once exhausted, fall back
-    to the learned word that hasn't been reviewed for the longest (with weakest mastery as tiebreaker)."""
+    to the learned word that hasn't been reviewed for the longest (with weakest mastery as tiebreaker).
+    When `collection` is set, only words from that collection are considered."""
     touched_ids = select(LearnerProgress.word_item_id).where(
         LearnerProgress.user_id == user.id,
     )
-    new_word = db.scalar(
-        select(WordItem)
-        .where(WordItem.is_active.is_(True), WordItem.id.not_in(touched_ids))
-        .order_by(WordItem.id.asc())
-        .limit(1)
-    )
+    new_q = select(WordItem).where(WordItem.is_active.is_(True), WordItem.id.not_in(touched_ids))
+    if collection:
+        new_q = new_q.where(WordItem.collection == collection)
+    new_word = db.scalar(new_q.order_by(WordItem.id.asc()).limit(1))
     if new_word:
         return new_word, False
 
-    learning_word = db.scalar(
-        select(WordItem)
-        .join(LearnerProgress, LearnerProgress.word_item_id == WordItem.id)
-        .where(
-            WordItem.is_active.is_(True),
-            LearnerProgress.user_id == user.id,
-            LearnerProgress.status.in_([ProgressStatus.SEEN.value, ProgressStatus.LEARNING.value]),
+    def _review_query(statuses: list[str]):
+        q = (
+            select(WordItem)
+            .join(LearnerProgress, LearnerProgress.word_item_id == WordItem.id)
+            .where(
+                WordItem.is_active.is_(True),
+                LearnerProgress.user_id == user.id,
+                LearnerProgress.status.in_(statuses),
+            )
+            .order_by(LearnerProgress.last_reviewed_at.asc().nulls_first(), LearnerProgress.mastery_score.asc())
+            .limit(1)
         )
-        .order_by(LearnerProgress.last_reviewed_at.asc().nulls_first(), LearnerProgress.mastery_score.asc())
-        .limit(1)
-    )
+        if collection:
+            q = q.where(WordItem.collection == collection)
+        return q
+
+    learning_word = db.scalar(_review_query([ProgressStatus.SEEN.value, ProgressStatus.LEARNING.value]))
     if learning_word:
         return learning_word, False
 
-    review_word = db.scalar(
-        select(WordItem)
-        .join(LearnerProgress, LearnerProgress.word_item_id == WordItem.id)
-        .where(
-            WordItem.is_active.is_(True),
-            LearnerProgress.user_id == user.id,
-            LearnerProgress.status.in_(LEARNED_STATUSES),
-        )
-        .order_by(LearnerProgress.last_reviewed_at.asc().nulls_first(), LearnerProgress.mastery_score.asc())
-        .limit(1)
-    )
+    review_word = db.scalar(_review_query(list(LEARNED_STATUSES)))
     return review_word, review_word is not None
 
 
