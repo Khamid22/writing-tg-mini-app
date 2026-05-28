@@ -64,6 +64,7 @@ export function AdminApp(): JSX.Element {
   const [level, setLevel] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const authenticated = token.trim().length > 0;
 
@@ -349,32 +350,12 @@ export function AdminApp(): JSX.Element {
                 </div>
                 <div className="admin-actions">
                   <button className="secondary-button" type="button" onClick={newWord}>Clear</button>
+                  <button className="secondary-button" type="button" onClick={() => setPreviewOpen(true)}>
+                    <Eye size={16} /> Preview
+                  </button>
                   <button className="primary-button" type="button" disabled={loading} onClick={submitWord}>
                     <Save size={16} /> Save word
                   </button>
-                </div>
-              </div>
-
-              <div className="admin-preview">
-                <div className="admin-preview-head"><Eye size={16} /> Mini app preview</div>
-                <div className="flashcard admin-preview-card">
-                  <div className="flashcard-side flashcard-front">
-                    <div className="flashcard-meta">
-                      <span>Karta · {preview.level || "A1"}</span>
-                      <span>{preview.word_type || "type"}</span>
-                    </div>
-                    <div className="flashcard-word-block">
-                      <h2>{preview.word || "word"}</h2>
-                      <p className="phonetic">{preview.phonetic || "/.../"} · {preview.word_type || "type"}</p>
-                    </div>
-                    <div className="flashcard-hint"><em>Ma'noni ko'rish uchun bosing.</em><span>♪</span></div>
-                  </div>
-                </div>
-                <div className="admin-preview-back">
-                  <strong>{preview.english_definition || "English definition"}</strong>
-                  <span>{preview.uzbek_definition || "Uzbek meaning"}</span>
-                  <em>{preview.english_example || "English example"}</em>
-                  <span>{preview.uzbek_example || "Uzbek example"}</span>
                 </div>
               </div>
             </section>
@@ -388,6 +369,41 @@ export function AdminApp(): JSX.Element {
           </section>
         ) : null}
       </main>
+
+      {previewOpen ? (
+        <div className="admin-preview-modal" role="presentation" onClick={() => setPreviewOpen(false)}>
+          <section
+            aria-modal="true"
+            className="admin-preview-dialog"
+            role="dialog"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="admin-panel-head">
+              <h2>Mini app preview</h2>
+              <button type="button" onClick={() => setPreviewOpen(false)}>Close</button>
+            </div>
+            <div className="flashcard admin-preview-card">
+              <div className="flashcard-side flashcard-front">
+                <div className="flashcard-meta">
+                  <span>Karta · {preview.level || "A1"}</span>
+                  <span>{preview.word_type || "type"}</span>
+                </div>
+                <div className="flashcard-word-block">
+                  <h2>{preview.word || "word"}</h2>
+                  <p className="phonetic">{preview.phonetic || "/.../"} · {preview.word_type || "type"}</p>
+                </div>
+                <div className="flashcard-hint"><em>Ma'noni ko'rish uchun bosing.</em><span>♪</span></div>
+              </div>
+            </div>
+            <div className="admin-preview-back">
+              <strong>{preview.english_definition || "English definition"}</strong>
+              <span>{preview.uzbek_definition || "Uzbek meaning"}</span>
+              <em>{preview.english_example || "English example"}</em>
+              <span>{preview.uzbek_example || "Uzbek example"}</span>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }

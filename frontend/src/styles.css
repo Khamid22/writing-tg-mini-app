@@ -3088,7 +3088,7 @@ h2 {
 }
 
 .admin-words-layout {
-  grid-template-columns: minmax(520px, 1fr) minmax(420px, 0.78fr);
+  grid-template-columns: minmax(560px, 1fr) minmax(340px, 0.48fr);
   align-items: start;
   height: calc(100dvh - 104px);
   min-height: 0;
@@ -3156,8 +3156,6 @@ h2 {
 
 .admin-editor {
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  gap: 10px;
   height: 100%;
   min-height: 0;
 }
@@ -3171,7 +3169,7 @@ h2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-  max-height: calc(100dvh - 300px);
+  max-height: calc(100dvh - 218px);
   overflow: auto;
   padding-right: 4px;
 }
@@ -3209,19 +3207,27 @@ h2 {
   margin-top: 10px;
 }
 
-.admin-preview {
-  background: #f7f6f3;
+.admin-preview-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(26, 24, 20, 0.34);
 }
 
-.admin-preview-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+.admin-preview-dialog {
+  width: min(100%, 560px);
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
+  border: 1px solid var(--admin-rule);
+  background: #f7f6f3;
+  padding: 18px;
 }
 
 .admin-preview-card {
-  height: 160px;
+  height: 280px;
   pointer-events: none;
 }
 
