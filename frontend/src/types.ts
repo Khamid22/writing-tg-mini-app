@@ -25,6 +25,7 @@ export type WordProgress = {
 };
 
 export type LearnerState = {
+  userId?: number;
   displayName: string;
   username: string;
   tier: Tier;

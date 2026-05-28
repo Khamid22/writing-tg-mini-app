@@ -1,76 +1,104 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { JSX } from "react";
 import { ChevronRight, GraduationCap, RotateCcw } from "lucide-react";
-import { emptyProgress } from "../storage";
-import type { LearnerState, QuizQuestion } from "../types";
-import { buildQuiz } from "../helpers";
+import type { ApiQuestion, AnswerResponse } from "../api";
+import { answerTestQuestion, completeTest, startTest } from "../api";
+import type { LearnerState } from "../types";
+
+type QuizState =
+  | { phase: "idle" }
+  | { phase: "loading" }
+  | { phase: "playing"; attemptId: number; questions: ApiQuestion[]; index: number; selected: string | null; correctAnswer: string | null; score: number }
+  | { phase: "done"; score: number; total: number; accuracy: number }
+  | { phase: "empty" };
 
 export function TestScreen({
   state,
   updateState,
+  apiToken,
 }: {
   state: LearnerState;
   updateState: (updater: (current: LearnerState) => LearnerState) => void;
+  apiToken: string | null;
 }): JSX.Element {
-  const [questions, setQuestions] = useState<QuizQuestion[]>(() => buildQuiz(state));
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [score, setScore] = useState(0);
-  const current = questions[currentIndex];
-  const completed = currentIndex >= questions.length;
+  const [quiz, setQuiz] = useState<QuizState>({ phase: "idle" });
 
-  function restart(): void {
-    setQuestions(buildQuiz(state));
-    setCurrentIndex(0);
-    setSelected(null);
-    setScore(0);
+  useEffect(() => {
+    if (!apiToken || quiz.phase !== "idle") return;
+    begin();
+  }, [apiToken]);
+
+  function begin(): void {
+    setQuiz({ phase: "loading" });
+    startTest(5, "learned_words")
+      .then(({ attempt, questions }) => {
+        if (!attempt.id || questions.length === 0) {
+          setQuiz({ phase: "empty" });
+          return;
+        }
+        setQuiz({
+          phase: "playing",
+          attemptId: attempt.id,
+          questions,
+          index: 0,
+          selected: null,
+          correctAnswer: null,
+          score: 0,
+        });
+      })
+      .catch(() => setQuiz({ phase: "empty" }));
   }
 
   function answer(choice: string): void {
-    if (selected || !current) return;
-    const correct = choice === current.answer;
-    setSelected(choice);
-    if (correct) setScore((value) => value + 1);
-    updateState((existing) => {
-      const progress = existing.progress[current.wordId] ?? emptyProgress();
-      const nextMastery = Math.min(100, progress.mastery + (correct ? 15 : 3));
-      return {
-        ...existing,
-        progress: {
-          ...existing.progress,
-          [current.wordId]: {
-            ...progress,
-            answered: progress.answered + 1,
-            correct: progress.correct + (correct ? 1 : 0),
-            mastery: nextMastery,
-            status: nextMastery >= 80 ? "mastered" : progress.status === "new" ? "learning" : progress.status,
-            lastReviewedAt: new Date().toISOString(),
+    if (quiz.phase !== "playing" || quiz.selected) return;
+    const current = quiz.questions[quiz.index];
+    answerTestQuestion(quiz.attemptId, current.id, choice)
+      .then((res: AnswerResponse) => {
+        const newScore = quiz.score + (res.is_correct ? 1 : 0);
+        setQuiz({ ...quiz, selected: choice, correctAnswer: res.correct_choice, score: newScore });
+        updateState((existing) => ({
+          ...existing,
+          progress: {
+            ...existing.progress,
+            [current.word_item_id]: {
+              ...(existing.progress[current.word_item_id] ?? {
+                status: "new", mastery: 0, seen: 0, listened: 0, flipped: 0, answered: 0, correct: 0,
+              }),
+              mastery: res.mastery_score,
+              answered: (existing.progress[current.word_item_id]?.answered ?? 0) + 1,
+              correct: (existing.progress[current.word_item_id]?.correct ?? 0) + (res.is_correct ? 1 : 0),
+            },
           },
-        },
-      };
-    });
+        }));
+      })
+      .catch(() => {});
   }
 
   function next(): void {
-    if (currentIndex + 1 >= questions.length) {
-      updateState((existing) => ({
-        ...existing,
-        quizHistory: [
-          ...existing.quizHistory,
-          {
-            id: crypto.randomUUID(),
-            date: new Date().toISOString(),
-            score,
-            total: questions.length,
-          },
-        ],
-      }));
+    if (quiz.phase !== "playing") return;
+    const nextIndex = quiz.index + 1;
+    if (nextIndex >= quiz.questions.length) {
+      completeTest(quiz.attemptId)
+        .then((res) => {
+          setQuiz({ phase: "done", score: res.score, total: res.total_questions, accuracy: res.accuracy });
+        })
+        .catch(() => {
+          setQuiz({ phase: "done", score: quiz.score, total: quiz.questions.length, accuracy: Math.round((quiz.score / quiz.questions.length) * 100) });
+        });
+    } else {
+      setQuiz({ ...quiz, index: nextIndex, selected: null, correctAnswer: null });
     }
-    setSelected(null);
-    setCurrentIndex((value) => value + 1);
   }
 
-  if (questions.length === 0) {
+  if (!apiToken || quiz.phase === "loading") {
+    return (
+      <section className="empty-panel">
+        <p className="muted">Yuklanmoqda...</p>
+      </section>
+    );
+  }
+
+  if (quiz.phase === "empty" || quiz.phase === "idle") {
     return (
       <section className="empty-panel">
         <GraduationCap size={28} />
@@ -80,40 +108,40 @@ export function TestScreen({
     );
   }
 
-  if (completed) {
+  if (quiz.phase === "done") {
     return (
       <section className="result-panel">
         <div className="score-circle">
-          {score}/{questions.length}
+          {quiz.score}/{quiz.total}
         </div>
         <h2>Test yakunlandi</h2>
-        <p>{Math.round((score / questions.length) * 100)}% aniqlik</p>
-        <button className="primary-button wide" type="button" onClick={restart}>
+        <p>{quiz.accuracy}% aniqlik</p>
+        <button className="primary-button wide" type="button" onClick={begin}>
           <RotateCcw size={16} /> Yangi test
         </button>
       </section>
     );
   }
 
+  const current = quiz.questions[quiz.index];
+
   return (
     <section className="test-layout">
       <div className="question-count">
-        <span>Savol {currentIndex + 1}</span>
-        <strong>
-          {currentIndex + 1}/{questions.length}
-        </strong>
+        <span>Savol {quiz.index + 1}</span>
+        <strong>{quiz.index + 1}/{quiz.questions.length}</strong>
       </div>
       <h2>{current.prompt}</h2>
       <div className="choices">
         {current.choices.map((choice) => {
-          const isCorrect = selected && choice === current.answer;
-          const isWrong = selected === choice && choice !== current.answer;
+          const isCorrect = quiz.selected !== null && choice === quiz.correctAnswer;
+          const isWrong = quiz.selected === choice && choice !== quiz.correctAnswer;
           return (
             <button
               className="choice-button"
               data-correct={isCorrect}
               data-wrong={isWrong}
-              disabled={Boolean(selected)}
+              disabled={quiz.selected !== null}
               key={choice}
               onClick={() => answer(choice)}
               type="button"
@@ -124,7 +152,7 @@ export function TestScreen({
           );
         })}
       </div>
-      {selected ? (
+      {quiz.selected !== null ? (
         <button className="primary-button wide" type="button" onClick={next}>
           Davom etish
         </button>

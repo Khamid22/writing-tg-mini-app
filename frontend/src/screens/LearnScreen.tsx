@@ -1,71 +1,80 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { JSX } from "react";
 import { Check, Flame, Headphones, RotateCcw } from "lucide-react";
-import { DAILY_FREE_LIMIT } from "../data";
-import { canLearnMore, dailyRemaining, emptyProgress, getTodayKey } from "../storage";
-import type { LearnerState, Word } from "../types";
-import { findNextWord, learnedWords } from "../helpers";
+import type { ApiLimit, ApiWord } from "../api";
+import { fetchTodayWord, sendWordEvent } from "../api";
+import { getTodayKey } from "../storage";
+import type { LearnerState } from "../types";
 
 export function LearnScreen({
   state,
   updateState,
+  apiToken,
 }: {
   state: LearnerState;
   updateState: (updater: (current: LearnerState) => LearnerState) => void;
+  apiToken: string | null;
 }): JSX.Element {
+  const [word, setWord] = useState<ApiWord | null>(null);
+  const [limit, setLimit] = useState<ApiLimit | null>(null);
+  const [loading, setLoading] = useState(true);
   const [flipped, setFlipped] = useState(false);
-  const nextWord = useMemo(() => findNextWord(state), [state]);
-  const learnedTotal = learnedWords(state).length;
-  const remaining = dailyRemaining(state);
-  const limitReached = !canLearnMore(state);
 
-  function recordEvent(word: Word, event: "seen" | "listened" | "flipped" | "learned" | "practice_later"): void {
-    updateState((current) => {
-      const today = getTodayKey();
-      const progress = current.progress[word.id] ?? emptyProgress();
-      const next = {
-        ...progress,
-        seen: progress.seen + (event === "seen" ? 1 : 0),
-        listened: progress.listened + (event === "listened" ? 1 : 0),
-        flipped: progress.flipped + (event === "flipped" ? 1 : 0),
-      };
-
-      if (event === "flipped" && next.status === "new") {
-        next.status = "seen";
-        next.mastery = Math.max(next.mastery, 5);
-      }
-
-      if (event === "practice_later") {
-        next.status = "learning";
-        next.mastery = Math.max(next.mastery, 10);
-      }
-
-      if (event === "learned") {
-        if (current.tier === "free" && (current.dailyUsage[today] ?? 0) >= DAILY_FREE_LIMIT && next.status !== "learned") {
-          return current;
-        }
-        const wasLearned = next.status === "learned" || next.status === "mastered";
-        next.status = "learned";
-        next.mastery = Math.max(next.mastery, 25);
-        next.learnedAt = next.learnedAt ?? new Date().toISOString();
-        return {
-          ...current,
-          streak: current.lastLearningDate === today ? current.streak : current.streak + 1,
-          lastLearningDate: today,
-          progress: { ...current.progress, [word.id]: next },
-          dailyUsage: {
-            ...current.dailyUsage,
-            [today]: (current.dailyUsage[today] ?? 0) + (wasLearned ? 0 : 1),
-          },
-        };
-      }
-
-      return { ...current, progress: { ...current.progress, [word.id]: next } };
-    });
+  function loadNextWord(): void {
+    setLoading(true);
+    fetchTodayWord()
+      .then(({ item, limit: newLimit }) => {
+        setWord(item);
+        setLimit(newLimit);
+        syncLimitToState(newLimit);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }
 
-  function speak(word: Word): void {
-    recordEvent(word, "listened");
+  function syncLimitToState(lim: ApiLimit): void {
+    updateState((current) => ({
+      ...current,
+      tier: lim.tier as LearnerState["tier"],
+      dailyUsage: { ...current.dailyUsage, [getTodayKey()]: lim.daily_used },
+    }));
+  }
+
+  useEffect(() => {
+    if (!apiToken) return;
+    loadNextWord();
+  }, [apiToken]);
+
+  function recordEvent(eventName: string): void {
+    if (!word) return;
+    sendWordEvent(word.id, eventName)
+      .then(({ progress, limit: newLimit }) => {
+        setLimit(newLimit);
+        syncLimitToState(newLimit);
+        updateState((current) => ({
+          ...current,
+          progress: {
+            ...current.progress,
+            [word.id]: {
+              ...(current.progress[word.id] ?? {
+                status: "new", mastery: 0, seen: 0, listened: 0, flipped: 0, answered: 0, correct: 0,
+              }),
+              status: progress.status as LearnerState["progress"][number]["status"],
+              mastery: progress.mastery_score,
+            },
+          },
+        }));
+        if (eventName === "learned") {
+          setFlipped(false);
+          loadNextWord();
+        }
+      })
+      .catch(() => {});
+  }
+
+  function speak(): void {
+    if (!word) return;
+    recordEvent("listened");
     if (!("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(word.word);
@@ -74,19 +83,28 @@ export function LearnScreen({
     window.speechSynthesis.speak(utterance);
   }
 
-  function flip(word: Word): void {
-    setFlipped((value) => !value);
-    if (!flipped) recordEvent(word, "flipped");
+  function flip(): void {
+    if (!word) return;
+    setFlipped((v) => !v);
+    if (!flipped) recordEvent("flipped");
   }
 
-  if (limitReached) {
+  if (!apiToken || loading) {
+    return (
+      <section className="empty-panel">
+        <p className="muted">Ulanmoqda...</p>
+      </section>
+    );
+  }
+
+  if (!limit?.can_learn_more) {
     return (
       <section className="limit-panel">
         <div className="panel-icon">
           <Flame size={24} />
         </div>
         <h2>Kunlik limit tugadi</h2>
-        <p>Bugun 10 ta so'z o'rgandingiz. Mashq qilish ochiq qoladi.</p>
+        <p>Bugun {limit?.daily_used ?? 0} ta so'z o'rgandingiz. Mashq qilish ochiq qoladi.</p>
         <div className="two-actions single-action">
           <button className="secondary-button" type="button" onClick={() => setFlipped(false)}>
             <RotateCcw size={16} /> Kartani tiklash
@@ -95,6 +113,21 @@ export function LearnScreen({
       </section>
     );
   }
+
+  if (!word) {
+    return (
+      <section className="empty-panel">
+        <Check size={28} />
+        <h2>Hammasi o'rganildi!</h2>
+        <p>Barcha mavjud so'zlarni o'rgandingiz. Yangi so'zlar tez orada qo'shiladi.</p>
+      </section>
+    );
+  }
+
+  const remaining = limit.daily_remaining;
+  const learnedTotal = Object.values(state.progress).filter(
+    (p) => p.status === "learned" || p.status === "mastered",
+  ).length;
 
   return (
     <section className="learn-layout">
@@ -107,17 +140,17 @@ export function LearnScreen({
         aria-label={flipped ? "So'zni ko'rsatish" : "Ma'noni ko'rsatish"}
         className="flashcard"
         data-flipped={flipped}
-        onClick={() => flip(nextWord)}
+        onClick={flip}
         type="button"
       >
         <div className="flashcard-side flashcard-front">
           <div className="flashcard-meta">
-            <span>Karta · {nextWord.level}</span>
-            <span>{nextWord.wordType}</span>
+            <span>Karta · {word.level}</span>
+            <span>{word.word_type}</span>
           </div>
           <div className="flashcard-word-block">
-            <h2>{nextWord.word}</h2>
-            <p className="phonetic">{nextWord.phonetic} · {nextWord.wordType}</p>
+            <h2>{word.word}</h2>
+            <p className="phonetic">{word.phonetic} · {word.word_type}</p>
           </div>
           <div className="flashcard-hint">
             <em>Ma'noni ko'rish uchun bosing.</em>
@@ -125,10 +158,7 @@ export function LearnScreen({
               aria-label="Talaffuz"
               className="flashcard-speaker"
               type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                speak(nextWord);
-              }}
+              onClick={(e) => { e.stopPropagation(); speak(); }}
             >
               ♪
             </button>
@@ -137,18 +167,18 @@ export function LearnScreen({
         <div className="flashcard-side flashcard-back">
           <div className="flashcard-meta">
             <span>Ma'no</span>
-            <span>{nextWord.level}</span>
+            <span>{word.level}</span>
           </div>
           <div className="flashcard-defs">
             <dl>
               <dt>Inglizcha</dt>
-              <dd>{nextWord.englishDefinition}</dd>
+              <dd>{word.english_definition}</dd>
               <dt>O'zbekcha</dt>
-              <dd>{nextWord.uzbekDefinition}</dd>
+              <dd>{word.uzbek_definition}</dd>
               <dt>Misol</dt>
-              <dd><em>{nextWord.englishExample}</em></dd>
+              <dd><em>{word.english_example}</em></dd>
               <dt>Tarjima</dt>
-              <dd>{nextWord.uzbekExample}</dd>
+              <dd>{word.uzbek_example}</dd>
             </dl>
           </div>
           <div className="flashcard-hint">
@@ -157,10 +187,7 @@ export function LearnScreen({
               aria-label="Talaffuz"
               className="flashcard-speaker"
               type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                speak(nextWord);
-              }}
+              onClick={(e) => { e.stopPropagation(); speak(); }}
             >
               ♪
             </button>
@@ -169,19 +196,16 @@ export function LearnScreen({
       </button>
 
       <div className="action-row">
-        <button aria-label="Tinglash" className="icon-button" type="button" onClick={() => speak(nextWord)}>
+        <button aria-label="Tinglash" className="icon-button" type="button" onClick={speak}>
           <Headphones size={20} />
         </button>
-        <button className="secondary-button" type="button" onClick={() => recordEvent(nextWord, "practice_later")}>
+        <button className="secondary-button" type="button" onClick={() => recordEvent("practice_later")}>
           Keyinroq
         </button>
         <button
           className="primary-button"
           type="button"
-          onClick={() => {
-            recordEvent(nextWord, "learned");
-            setFlipped(false);
-          }}
+          onClick={() => recordEvent("learned")}
         >
           <Check size={16} /> O'rgandim
         </button>
