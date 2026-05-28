@@ -2559,3 +2559,224 @@ h2 {
     color: var(--lp-ink);
   }
 }
+
+@media (min-width: 1024px) {
+  .app-shell {
+    width: 100vw;
+    max-width: min(1280px, 100vw);
+    grid-template-columns: 240px minmax(0, 1fr);
+  }
+
+  .topbar {
+    min-height: 92px;
+    padding: 22px 44px 18px;
+  }
+
+  .topbar h1 {
+    font-size: 36px;
+  }
+
+  .screen {
+    padding: 40px 48px;
+  }
+
+  .bottom-nav {
+    width: 240px;
+    padding: 32px 14px;
+  }
+
+  .nav-button {
+    height: 52px;
+    padding: 0 16px;
+  }
+
+  .learn-layout,
+  .test-layout,
+  .dashboard-layout,
+  .leaderboard-layout,
+  .profile-layout {
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .learn-layout {
+    max-width: 1080px;
+    grid-template-columns: minmax(420px, 1.45fr) minmax(240px, 0.55fr);
+    grid-template-areas:
+      "strip strip"
+      "card actions";
+    column-gap: 32px;
+    row-gap: 18px;
+    align-items: stretch;
+  }
+
+  .learn-layout > .daily-strip {
+    grid-area: strip;
+  }
+
+  .learn-layout > .flashcard {
+    grid-area: card;
+    height: clamp(420px, calc(100dvh - 250px), 560px);
+  }
+
+  .learn-layout > .action-row {
+    grid-area: actions;
+    grid-template-columns: 1fr;
+    align-content: center;
+    gap: 12px;
+  }
+
+  .learn-layout > .action-row > * {
+    width: 100%;
+  }
+
+  .flashcard-front h2,
+  .flashcard-word-block h2 {
+    font-size: clamp(64px, 7vw, 96px);
+  }
+
+  .test-layout {
+    max-width: 1040px;
+    grid-template-columns: minmax(320px, 0.85fr) minmax(380px, 1.15fr);
+    grid-template-areas:
+      "count count"
+      "prompt choices"
+      "next choices";
+    column-gap: 44px;
+    row-gap: 22px;
+    align-items: start;
+  }
+
+  .test-layout > .question-count {
+    grid-area: count;
+  }
+
+  .test-layout > h2 {
+    grid-area: prompt;
+    font-size: clamp(34px, 4vw, 54px);
+    line-height: 1.05;
+  }
+
+  .test-layout > .choices {
+    grid-area: choices;
+    gap: 12px;
+  }
+
+  .test-layout > .primary-button {
+    grid-area: next;
+    width: min(280px, 100%);
+  }
+
+  .choice-button,
+  .leader-row {
+    min-height: 68px;
+    padding: 16px 18px;
+  }
+
+  .dashboard-layout {
+    max-width: 1100px;
+    grid-template-columns: minmax(280px, 0.85fr) minmax(460px, 1.15fr);
+    grid-template-areas:
+      "metrics words"
+      "today words";
+    column-gap: 28px;
+    row-gap: 24px;
+    align-items: start;
+  }
+
+  .dashboard-layout > .metric-grid {
+    grid-area: metrics;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-layout > .panel:nth-child(2) {
+    grid-area: today;
+  }
+
+  .dashboard-layout > .panel:nth-child(3) {
+    grid-area: words;
+  }
+
+  .metric {
+    min-height: 116px;
+    padding: 20px;
+  }
+
+  .metric strong {
+    font-size: 42px;
+  }
+
+  .panel,
+  .profile-card,
+  .public-profile {
+    padding: 26px;
+  }
+
+  .word-row {
+    min-height: 70px;
+  }
+
+  .leaderboard-layout {
+    max-width: 860px;
+    gap: 12px;
+  }
+
+  .leader-row div {
+    grid-template-columns: minmax(160px, 1fr) auto;
+    align-items: baseline;
+  }
+
+  .leader-row div span {
+    justify-self: end;
+  }
+
+  .profile-layout {
+    max-width: 980px;
+    grid-template-columns: minmax(280px, 360px) minmax(420px, 1fr);
+    grid-template-areas:
+      "identity plan"
+      "identity stats"
+      "logout stats";
+    column-gap: 28px;
+    row-gap: 18px;
+    align-items: start;
+  }
+
+  .profile-layout > .profile-card {
+    grid-area: identity;
+    min-height: 280px;
+    align-content: center;
+  }
+
+  .profile-layout > .panel:nth-of-type(1) {
+    grid-area: plan;
+  }
+
+  .profile-layout > .panel:nth-of-type(2) {
+    grid-area: stats;
+  }
+
+  .profile-layout > .secondary-button {
+    grid-area: logout;
+  }
+}
+
+@media (min-width: 1280px) {
+  .app-shell {
+    max-width: min(1400px, 100vw);
+    grid-template-columns: 256px minmax(0, 1fr);
+  }
+
+  .bottom-nav {
+    width: 256px;
+  }
+
+  .screen {
+    padding: 48px 64px;
+  }
+
+  .learn-layout,
+  .dashboard-layout {
+    max-width: 1180px;
+  }
+}
