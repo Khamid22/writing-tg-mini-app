@@ -3,7 +3,6 @@ import type { JSX } from "react";
 import { BarChart3, BookOpen, Crown, GraduationCap, Medal, User } from "lucide-react";
 import { applyApiUser, authenticateTelegram, clearStoredToken, getStoredToken } from "./api";
 import { DAILY_FREE_LIMIT } from "./data";
-import type { LeaderboardUser } from "./data";
 import { clearState, dailyUsed, loadState, saveState } from "./storage";
 import type { LearnerState, TelegramWebApp } from "./types";
 import { LandingPage } from "./screens/LandingPage";
@@ -33,7 +32,7 @@ export function App(): JSX.Element {
   const [activeTab, setActiveTab] = useState<Tab>("learn");
   const [state, setState] = useState<LearnerState>(() => loadState());
   const [apiToken, setApiToken] = useState<string | null>(() => getStoredToken());
-  const [selectedUser, setSelectedUser] = useState<LeaderboardUser | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
 
   useEffect(() => {
     saveState(state);
@@ -94,10 +93,18 @@ export function App(): JSX.Element {
       </header>
 
       <main className="screen">
-        {activeTab === "learn" ? <LearnScreen state={state} updateState={updateState} /> : null}
-        {activeTab === "test" ? <TestScreen state={state} updateState={updateState} /> : null}
-        {activeTab === "dashboard" ? <DashboardScreen state={state} /> : null}
-        {activeTab === "leaders" ? <LeaderboardScreen state={state} onSelectUser={setSelectedUser} /> : null}
+        {activeTab === "learn" ? (
+          <LearnScreen state={state} updateState={updateState} apiToken={apiToken} />
+        ) : null}
+        {activeTab === "test" ? (
+          <TestScreen state={state} updateState={updateState} apiToken={apiToken} />
+        ) : null}
+        {activeTab === "dashboard" ? (
+          <DashboardScreen state={state} apiToken={apiToken} />
+        ) : null}
+        {activeTab === "leaders" ? (
+          <LeaderboardScreen state={state} onSelectUser={setSelectedUserId} apiToken={apiToken} />
+        ) : null}
         {activeTab === "profile" ? (
           <ProfileScreen
             state={state}
@@ -114,7 +121,9 @@ export function App(): JSX.Element {
         ) : null}
       </main>
 
-      {selectedUser ? <PublicProfile user={selectedUser} onClose={() => setSelectedUser(null)} /> : null}
+      {selectedUserId !== null ? (
+        <PublicProfile userId={selectedUserId} onClose={() => setSelectedUserId(null)} />
+      ) : null}
 
       <nav aria-label="Main navigation" className="bottom-nav">
         <div className="app-nav-brand" aria-hidden="true">

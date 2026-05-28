@@ -1,45 +1,60 @@
+import { useEffect, useState } from "react";
 import type { JSX } from "react";
-import { leaderboard } from "../data";
-import type { LeaderboardUser } from "../data";
+import type { LeaderboardItem } from "../api";
+import { fetchLeaderboard } from "../api";
 import type { LearnerState } from "../types";
-import { learnedWords, userAccuracy } from "../helpers";
 
 export function LeaderboardScreen({
   state,
   onSelectUser,
+  apiToken,
 }: {
   state: LearnerState;
-  onSelectUser: (user: LeaderboardUser) => void;
+  onSelectUser: (userId: number) => void;
+  apiToken: string | null;
 }): JSX.Element {
-  const learned = learnedWords(state).length;
-  const userPoints = learned * 20 + state.quizHistory.reduce((total, item) => total + item.score * 5, 0);
-  const rows = [
-    ...leaderboard,
-    {
-      id: 999,
-      displayName: state.displayName,
-      username: state.username,
-      points: userPoints,
-      learned,
-      streak: state.streak,
-      accuracy: userAccuracy(state),
-    },
-  ].sort((a, b) => b.points - a.points);
+  const [items, setItems] = useState<LeaderboardItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!apiToken) return;
+    setLoading(true);
+    fetchLeaderboard("weekly")
+      .then(({ items: rows }) => setItems(rows))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [apiToken]);
+
+  if (!apiToken || loading) {
+    return (
+      <section className="empty-panel">
+        <p className="muted">Yuklanmoqda...</p>
+      </section>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <section className="empty-panel">
+        <p className="muted">Hali reyting yo'q.</p>
+      </section>
+    );
+  }
 
   return (
     <section className="leaderboard-layout">
-      {rows.map((row, index) => (
+      {items.map((row) => (
         <button
           className="leader-row"
-          data-current={row.id === 999}
-          key={row.id}
-          onClick={() => row.id !== 999 && onSelectUser(row)}
+          data-current={row.user_id === state.userId}
+          key={row.user_id}
+          onClick={() => onSelectUser(row.user_id)}
           type="button"
         >
-          <span className="rank">{index + 1}</span>
+          <span className="rank">{row.rank}</span>
           <div>
-            <strong>{row.displayName}</strong>
-            <span>@{row.username}</span>
+            <strong>{row.display_name}</strong>
+            <span>@{row.username ?? "—"}</span>
           </div>
           <strong>{row.points}</strong>
         </button>
