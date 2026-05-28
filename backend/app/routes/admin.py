@@ -76,6 +76,13 @@ class AdminWordPayload(BaseModel):
     english_example: str = Field(min_length=1)
     uzbek_example: str = Field(min_length=1)
     level: str = Field(min_length=1, max_length=32)
+    topic: str = Field(default="General", min_length=1, max_length=120)
+    collection: str = Field(default="Daily Vocabulary", min_length=1, max_length=160)
+    tags: str = ""
+    collocations: str = ""
+    common_mistake: str = ""
+    writing_prompt: str = ""
+    difficulty_order: int = Field(default=0, ge=0)
     audio_url: str | None = Field(default=None, max_length=500)
     is_active: bool = True
 
@@ -89,6 +96,13 @@ class AdminWordPatch(BaseModel):
     english_example: str | None = Field(default=None, min_length=1)
     uzbek_example: str | None = Field(default=None, min_length=1)
     level: str | None = Field(default=None, min_length=1, max_length=32)
+    topic: str | None = Field(default=None, min_length=1, max_length=120)
+    collection: str | None = Field(default=None, min_length=1, max_length=160)
+    tags: str | None = None
+    collocations: str | None = None
+    common_mistake: str | None = None
+    writing_prompt: str | None = None
+    difficulty_order: int | None = Field(default=None, ge=0)
     audio_url: str | None = Field(default=None, max_length=500)
     is_active: bool | None = None
 
@@ -170,6 +184,9 @@ def admin_words(
                 WordItem.word.ilike(term),
                 WordItem.uzbek_definition.ilike(term),
                 WordItem.english_definition.ilike(term),
+                WordItem.topic.ilike(term),
+                WordItem.collection.ilike(term),
+                WordItem.tags.ilike(term),
             )
         )
     if status == "published":
@@ -181,7 +198,15 @@ def admin_words(
     if word_type.strip():
         query = query.where(WordItem.word_type == word_type.strip())
 
-    rows = list(db.scalars(query.order_by(WordItem.created_at.desc(), WordItem.id.desc()).limit(limit)))
+    rows = list(
+        db.scalars(
+            query.order_by(
+                WordItem.difficulty_order.asc(),
+                WordItem.created_at.desc(),
+                WordItem.id.desc(),
+            ).limit(limit)
+        )
+    )
     return {"items": [admin_word_payload(word) for word in rows]}
 
 

@@ -30,13 +30,40 @@ def ensure_schema_compatibility() -> None:
     inspector = inspect(engine)
     if "learner_users" not in inspector.get_table_names():
         return
-    learner_columns = {column["name"] for column in inspector.get_columns("learner_users")}
     with engine.begin() as connection:
+        learner_columns = {column["name"] for column in inspector.get_columns("learner_users")}
         if "premium_until" not in learner_columns:
             if settings.resolved_database_url.startswith("sqlite"):
                 connection.execute(text("ALTER TABLE learner_users ADD COLUMN premium_until DATETIME"))
             else:
                 connection.execute(text("ALTER TABLE learner_users ADD COLUMN premium_until TIMESTAMP WITH TIME ZONE"))
+
+        if "word_items" not in inspector.get_table_names():
+            return
+
+        word_columns = {column["name"] for column in inspector.get_columns("word_items")}
+        sqlite_columns = {
+            "topic": "VARCHAR(120) DEFAULT 'General' NOT NULL",
+            "collection": "VARCHAR(160) DEFAULT 'Daily Vocabulary' NOT NULL",
+            "tags": "TEXT DEFAULT '' NOT NULL",
+            "collocations": "TEXT DEFAULT '' NOT NULL",
+            "common_mistake": "TEXT DEFAULT '' NOT NULL",
+            "writing_prompt": "TEXT DEFAULT '' NOT NULL",
+            "difficulty_order": "INTEGER DEFAULT 0 NOT NULL",
+        }
+        postgres_columns = {
+            "topic": "VARCHAR(120) DEFAULT 'General' NOT NULL",
+            "collection": "VARCHAR(160) DEFAULT 'Daily Vocabulary' NOT NULL",
+            "tags": "TEXT DEFAULT '' NOT NULL",
+            "collocations": "TEXT DEFAULT '' NOT NULL",
+            "common_mistake": "TEXT DEFAULT '' NOT NULL",
+            "writing_prompt": "TEXT DEFAULT '' NOT NULL",
+            "difficulty_order": "INTEGER DEFAULT 0 NOT NULL",
+        }
+        column_defs = sqlite_columns if settings.resolved_database_url.startswith("sqlite") else postgres_columns
+        for name, definition in column_defs.items():
+            if name not in word_columns:
+                connection.execute(text(f"ALTER TABLE word_items ADD COLUMN {name} {definition}"))
 
 
 def get_db() -> Generator[Session, None, None]:

@@ -43,6 +43,13 @@ class WordPayload(BaseModel):
     english_example: str
     uzbek_example: str
     level: str
+    topic: str
+    collection: str
+    tags: str
+    collocations: str
+    common_mistake: str
+    writing_prompt: str
+    difficulty_order: int
     audio_url: str
 
 

@@ -24,6 +24,13 @@ def word_payload(word: WordItem) -> dict:
         "english_example": word.english_example,
         "uzbek_example": word.uzbek_example,
         "level": word.level,
+        "topic": word.topic,
+        "collection": word.collection,
+        "tags": word.tags,
+        "collocations": word.collocations,
+        "common_mistake": word.common_mistake,
+        "writing_prompt": word.writing_prompt,
+        "difficulty_order": word.difficulty_order,
         "audio_url": word.audio_url or f"/api/mini/words/{word.id}/audio",
     }
 
@@ -61,4 +68,3 @@ def word_audio(word_id: int, db: Session = Depends(get_db)) -> dict:
     if not word:
         raise HTTPException(status_code=404, detail="Word not found")
     return {"word": word.word, "audio_url": word.audio_url, "fallback": "Use browser speech synthesis if audio_url is empty."}
-

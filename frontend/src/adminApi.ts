@@ -8,6 +8,13 @@ export type AdminWord = {
   english_example: string;
   uzbek_example: string;
   level: string;
+  topic: string;
+  collection: string;
+  tags: string;
+  collocations: string;
+  common_mistake: string;
+  writing_prompt: string;
+  difficulty_order: number;
   audio_url: string | null;
   is_active: boolean;
   created_at: string | null;
@@ -22,6 +29,13 @@ export type AdminWordInput = {
   english_example: string;
   uzbek_example: string;
   level: string;
+  topic: string;
+  collection: string;
+  tags: string;
+  collocations: string;
+  common_mistake: string;
+  writing_prompt: string;
+  difficulty_order: number;
   audio_url: string | null;
   is_active: boolean;
 };

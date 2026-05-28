@@ -18,6 +18,13 @@ const emptyWord: AdminWordInput = {
   english_example: "",
   uzbek_example: "",
   level: "A1",
+  topic: "Everyday English",
+  collection: "Daily Vocabulary",
+  tags: "",
+  collocations: "",
+  common_mistake: "",
+  writing_prompt: "",
+  difficulty_order: 0,
   audio_url: null,
   is_active: false,
 };
@@ -42,6 +49,13 @@ function toInput(word: AdminWord): AdminWordInput {
     english_example: word.english_example,
     uzbek_example: word.uzbek_example,
     level: word.level,
+    topic: word.topic,
+    collection: word.collection,
+    tags: word.tags,
+    collocations: word.collocations,
+    common_mistake: word.common_mistake,
+    writing_prompt: word.writing_prompt,
+    difficulty_order: word.difficulty_order,
     audio_url: word.audio_url,
     is_active: word.is_active,
   };
@@ -317,7 +331,7 @@ export function AdminApp(): JSX.Element {
                 <div className="admin-table-row admin-table-head">
                   <span>Word</span>
                   <span>Meaning</span>
-                  <span>Level</span>
+                  <span>Topic</span>
                   <span>Status</span>
                   <span>Actions</span>
                 </div>
@@ -325,7 +339,7 @@ export function AdminApp(): JSX.Element {
                   <div className="admin-table-row" key={word.id}>
                     <strong>{word.word}</strong>
                     <span>{word.uzbek_definition}</span>
-                    <span>{word.level}</span>
+                    <span>{word.topic || word.level}</span>
                     <span>{statusLabel(word)}</span>
                     <span className="admin-row-actions">
                       <button type="button" title="Edit" onClick={() => editWord(word)}><Edit3 size={15} /></button>
@@ -368,10 +382,17 @@ export function AdminApp(): JSX.Element {
                   <label>Level<select value={form.level} onChange={(e) => updateField("level", e.target.value)}>
                     {["A1", "A2", "B1", "B2", "C1"].map((item) => <option key={item} value={item}>{item}</option>)}
                   </select></label>
+                  <label>Topic<input value={form.topic} onChange={(e) => updateField("topic", e.target.value)} /></label>
+                  <label>Collection<input value={form.collection} onChange={(e) => updateField("collection", e.target.value)} /></label>
+                  <label>Order<input type="number" min={0} value={form.difficulty_order} onChange={(e) => updateField("difficulty_order", Number(e.target.value))} /></label>
+                  <label>Tags<input value={form.tags} onChange={(e) => updateField("tags", e.target.value)} placeholder="travel, work, email" /></label>
                   <label className="span-2">English definition<textarea value={form.english_definition} onChange={(e) => updateField("english_definition", e.target.value)} /></label>
                   <label className="span-2">Uzbek meaning<textarea value={form.uzbek_definition} onChange={(e) => updateField("uzbek_definition", e.target.value)} /></label>
                   <label className="span-2">English example<textarea value={form.english_example} onChange={(e) => updateField("english_example", e.target.value)} /></label>
                   <label className="span-2">Uzbek example<textarea value={form.uzbek_example} onChange={(e) => updateField("uzbek_example", e.target.value)} /></label>
+                  <label className="span-2">Collocations<textarea value={form.collocations} onChange={(e) => updateField("collocations", e.target.value)} placeholder="make a decision; strong coffee; take responsibility" /></label>
+                  <label className="span-2">Common mistake<textarea value={form.common_mistake} onChange={(e) => updateField("common_mistake", e.target.value)} placeholder="Uzbek learners often confuse..." /></label>
+                  <label className="span-2">Writing prompt<textarea value={form.writing_prompt} onChange={(e) => updateField("writing_prompt", e.target.value)} placeholder="Write two sentences using this word." /></label>
                   <label className="span-2">Audio URL<input value={form.audio_url ?? ""} onChange={(e) => updateField("audio_url", e.target.value || null)} /></label>
                   <label className="admin-check span-2">
                     <input type="checkbox" checked={form.is_active} onChange={(e) => updateField("is_active", e.target.checked)} />
@@ -390,7 +411,7 @@ export function AdminApp(): JSX.Element {
                 <div className="flashcard admin-preview-card">
                   <div className="flashcard-side flashcard-front">
                     <div className="flashcard-meta">
-                      <span>Karta · {preview.level || "A1"}</span>
+                      <span>{preview.topic || "Topic"} · {preview.level || "A1"}</span>
                       <span>{preview.word_type || "type"}</span>
                     </div>
                     <div className="flashcard-word-block">
@@ -401,10 +422,14 @@ export function AdminApp(): JSX.Element {
                   </div>
                 </div>
                 <div className="admin-preview-back">
+                  <span>{preview.collection || "Collection"}</span>
                   <strong>{preview.english_definition || "English definition"}</strong>
                   <span>{preview.uzbek_definition || "Uzbek meaning"}</span>
                   <em>{preview.english_example || "English example"}</em>
                   <span>{preview.uzbek_example || "Uzbek example"}</span>
+                  {preview.collocations ? <span>Works with: {preview.collocations}</span> : null}
+                  {preview.common_mistake ? <span>Avoid: {preview.common_mistake}</span> : null}
+                  {preview.writing_prompt ? <span>Writing: {preview.writing_prompt}</span> : null}
                 </div>
               </div>
             </div>
@@ -445,7 +470,8 @@ export function AdminApp(): JSX.Element {
             )}
             <p className="muted">
               Columns: word, word_type, phonetic, english_definition, uzbek_definition,
-              english_example, uzbek_example, level, is_active.
+              english_example, uzbek_example, level, topic, collection, tags, collocations,
+              common_mistake, writing_prompt, difficulty_order, is_active.
             </p>
           </section>
         </div>
