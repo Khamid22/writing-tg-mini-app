@@ -22,10 +22,9 @@ export function RegistrationPage({
         </div>
 
         <div className="lp-register-pitch">
-          <h1>Xush kelibsiz, <em>Qiroatxonaga</em>.</h1>
+          <h1>VocabHelper bilan boshlang.</h1>
           <p>
-            Bepul hisob birinchi o'nta kartangizni, taraqqiyot daftaringizni va boshqa o'quvchilar
-            bilan sokin reytingni ochadi.
+            Ismingizni yozing. Progress, test natijalari va leaderboard shu profilga saqlanadi.
           </p>
           <div className="lp-reg-mini">
             <div className="lp-reg-mini-meta">
@@ -38,17 +37,17 @@ export function RegistrationPage({
         </div>
 
         <div className="lp-register-aside-meta">
-          <span>I-jild · №1</span>
-          <span>Ro'yxat stoli</span>
+          <span>Free plan: kuniga 10 ta word</span>
+          <span>Premium: limit yo'q</span>
         </div>
       </aside>
 
       <section className="lp-register-main">
         <div className="lp-formhead">
-          <span>§ Ro'yxatdan o'tish</span>
-          <span>Bir daqiqaga yetadi</span>
+          <span>Profil</span>
+          <span>Tez boshlash</span>
         </div>
-        <h2>Hisobingizni oching.</h2>
+        <h2>Ismingizni kiriting.</h2>
         <div className="lp-field">
           <label htmlFor="display-name">Ko'rinadigan ism</label>
           <input
@@ -59,11 +58,11 @@ export function RegistrationPage({
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
           />
-          <div className="lp-field-hint">Bu ism reyting jadvalida ko'rinadi.</div>
+          <div className="lp-field-hint">Bu ism leaderboardda ko'rinadi.</div>
         </div>
         <div className="lp-reg-submit">
           <button className="lp-btn lp-accent" type="button" onClick={() => onComplete(displayName)}>
-            Hisobimni ochish
+            Boshlash
           </button>
           <span className="lp-reg-or">
             yoki{" "}

@@ -33,7 +33,7 @@ export function LandingPage({ onRegister }: { onRegister: () => void }): JSX.Ele
         <div className="lp-wrap lp-topbar-inner">
           <div className="lp-brand"><span className="lp-vh">Vocab</span>·<em>Helper</em></div>
           <nav className="lp-nav">
-            <a href="#promise">Va'da</a>
+            <a href="#features">Imkoniyatlar</a>
             <a href="#try">Karta</a>
             <a href="#pricing">Tarif</a>
             <button className="lp-nav-cta" type="button" onClick={onRegister}>Boshlash</button>
@@ -43,8 +43,8 @@ export function LandingPage({ onRegister }: { onRegister: () => void }): JSX.Ele
 
       <div className="lp-masthead">
         <div className="lp-wrap lp-masthead-inner">
-          <span>I-jild · №1</span>
-          <span>Sokin va izchil mashg'ulot jurnali</span>
+          <span>VocabHelper</span>
+          <span>Har kuni inglizcha so'z o'rganish</span>
           <span>{dateStr}</span>
         </div>
       </div>
@@ -53,17 +53,17 @@ export function LandingPage({ onRegister }: { onRegister: () => void }): JSX.Ele
         <div className="lp-wrap">
           <div className="lp-hero-grid">
             <div>
-              <div className="lp-eyebrow">Sabrli o'rganuvchi uchun</div>
-              <h1 className="lp-headline">Kuniga o'nta so'z. Umrga yetar lug'at.</h1>
+              <div className="lp-eyebrow">English vocabulary uchun mini app</div>
+              <h1 className="lp-headline">So'z yodlashni oddiy odatga aylantiring.</h1>
               <p className="lp-lede">
-                VocabHelper — ingliz tilidagi so'zlarni birma-bir o'rganadigan sokin, tartibli joy.
-                Har bir so'zda ona tilingizdagi tarjima, jonli misol va talaffuz bor.
+                VocabHelper har kuni yangi English words beradi: pronunciation, Uzbek meaning,
+                real example va qisqa test bitta joyda. Keraksiz darslar va chalkash yo'llarsiz.
               </p>
               <div className="lp-cta-row">
-                <button className="lp-btn lp-accent" type="button" onClick={onRegister}>Hisob ochish</button>
-                <button className="lp-btn lp-ghost" type="button" onClick={scrollToTry}>Avval kartani sinab ko'ring</button>
+                <button className="lp-btn lp-accent" type="button" onClick={onRegister}>Boshlash</button>
+                <button className="lp-btn lp-ghost" type="button" onClick={scrollToTry}>Kartani ko'rish</button>
               </div>
-              <p className="lp-cta-fine">Kuniga o'n so'zgacha — abadiy bepul. Karta talab qilinmaydi.</p>
+              <p className="lp-cta-fine">Free plan: kuniga 10 ta so'z. Premium: limit yo'q.</p>
             </div>
 
             <aside className="lp-hero-aside">
@@ -91,39 +91,39 @@ export function LandingPage({ onRegister }: { onRegister: () => void }): JSX.Ele
                 </div>
               </div>
               <div className="lp-aside-caption">
-                <span className="lp-cap-num">1-rasm.</span>Karta — har ertalab shu ko'rinishda.
+                <span className="lp-cap-num">Demo.</span>Asosiy o'rganish ekrani shu formatda ishlaydi.
               </div>
             </aside>
           </div>
         </div>
       </section>
 
-      <section className="lp-promise" id="promise">
+      <section className="lp-promise" id="features">
         <div className="lp-wrap">
           <div className="lp-section-head">
-            <div className="lp-section-label">§ I · Va'da</div>
-            <h2 className="lp-section-h2">Har bir o'rganuvchiga beradigan to'rt <em>sokin</em> va'damiz.</h2>
+            <div className="lp-section-label">Nima beradi</div>
+            <h2 className="lp-section-h2">So'z o'rganish uchun kerakli narsalar. Ortiqchasi yo'q.</h2>
           </div>
           <div className="lp-pillars">
             <article className="lp-pillar">
-              <div className="lp-pillar-letter">A.</div>
-              <h3>Oson o'rganish, izchil o'rganish.</h3>
-              <p>Har kuni kichik ulush — o'nta yangi so'z va engil takror — oddiy ertalabga sig'adi. Shoshilishdan ko'ra, har kuni qaytib kelish muhim.</p>
+              <div className="lp-pillar-letter">1.</div>
+              <h3>Har kuni aniq vazifa.</h3>
+              <p>Bugun qaysi so'zni o'rganish kerakligi tayyor. Siz faqat kartani ochasiz, eshitasiz va eslab qolasiz.</p>
             </article>
             <article className="lp-pillar">
-              <div className="lp-pillar-letter">B.</div>
-              <h3>Hamroh o'rganuvchilar bilan birga.</h3>
-              <p>Do'stlar va boshqa o'quvchilar bilan sokin reyting jadvali. Yengilgina bellashing, yutuqlaringizni ulashing — va ertaga qaytib kelishga sabab toping.</p>
+              <div className="lp-pillar-letter">2.</div>
+              <h3>Pronunciation va example.</h3>
+              <p>So'z faqat tarjima emas. Talaffuz, English definition, Uzbek meaning va gap ichidagi ishlatilishi bir kartada.</p>
             </article>
             <article className="lp-pillar">
-              <div className="lp-pillar-letter">D.</div>
-              <h3>Tartibli, izchil yo'l.</h3>
-              <p>So'zlar daraja va mavzu bo'yicha tartiblangan — tarqoq emas. Qayerdan boshlaganingiz, qayerdaligingiz va keyingi qadamingiz har doim aniq.</p>
+              <div className="lp-pillar-letter">3.</div>
+              <h3>Progress ko'rinib turadi.</h3>
+              <p>O'rgangan so'zlaringiz, test natijalari va streak profil ichida saqlanadi.</p>
             </article>
             <article className="lp-pillar">
-              <div className="lp-pillar-letter">F.</div>
-              <h3>Ortiqcha shovqin va yuk yo'q.</h3>
-              <p>Bir ekran, bir karta, bir savol: <em>bildimmi?</em> Qolgani — takror, misol, talaffuz — orqa fonda o'z-o'zidan bo'ladi.</p>
+              <div className="lp-pillar-letter">4.</div>
+              <h3>Community va raqobat.</h3>
+              <p>Leaderboard orqali boshqa foydalanuvchilar progressini ko'rasiz va o'zingizni solishtirasiz.</p>
             </article>
           </div>
         </div>
@@ -133,17 +133,16 @@ export function LandingPage({ onRegister }: { onRegister: () => void }): JSX.Ele
         <div className="lp-wrap">
           <div className="lp-try-grid">
             <div className="lp-try-copy">
-              <div className="lp-section-label" style={{ marginBottom: "24px" }}>§ II · Namuna karta</div>
-              <h2>Karta <em>— usulning o'zi.</em></h2>
+              <div className="lp-section-label" style={{ marginBottom: "24px" }}>Karta qanday ishlaydi</div>
+              <h2>Bir karta — bitta so'z, pronunciation va real example.</h2>
               <p>
-                So'z paydo bo'ladi. Talaffuzini eshitasiz. Ma'nosini eslashga urinasiz.
-                Kartani aylantirasiz — va boshqa tomonida ingliz tilidagi izoh, o'zbekcha tarjima
-                va so'z ishlatilgan misol turibdi.
+                Old tomonda so'z va talaffuz bor. Orqa tomonda English definition, Uzbek meaning
+                va example chiqadi. Keyin test mode orqali eslab qolganingizni tekshirasiz.
               </p>
               <ul className="lp-try-list">
-                <li><span className="lp-n">i.</span><span>Karta ustiga bosing — ma'no, tarjima va misol ko'rinadi.</span></li>
-                <li><span className="lp-n">ii.</span><span>Kichik <strong>♪</strong> tugmasini bossangiz, so'zni ona tilida so'zlovchi talaffuz qiladi.</span></li>
-                <li><span className="lp-n">iii.</span><span>Tayyor bo'lganingizda, o'rgangan so'zlaringiz bo'yicha qisqa test ishlang.</span></li>
+                <li><span className="lp-n">1</span><span>So'zni ko'ring va avval o'zingiz ma'nosini eslashga harakat qiling.</span></li>
+                <li><span className="lp-n">2</span><span><strong>♪</strong> tugmasi bilan pronunciation eshiting.</span></li>
+                <li><span className="lp-n">3</span><span>Kartani aylantirib, meaning va examplesni tekshiring.</span></li>
               </ul>
             </div>
             <div>
@@ -202,33 +201,25 @@ export function LandingPage({ onRegister }: { onRegister: () => void }): JSX.Ele
                 </div>
               </div>
               <div className="lp-card-controls">
-                <button className="lp-icon-btn" type="button" onClick={() => setFlipped((f) => !f)}>Kartani aylantiring</button>
-                <button className="lp-icon-btn" type="button" onClick={onRegister}>Hisob ochish</button>
+                <button className="lp-icon-btn" type="button" onClick={() => setFlipped((f) => !f)}>Kartani aylantirish</button>
+                <button className="lp-icon-btn" type="button" onClick={onRegister}>Boshlash</button>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="lp-pull">
-        <div className="lp-wrap">
-          <div className="lp-pull-mark">"</div>
-          <blockquote>Tomchi-tomchi yig'ilib, <span className="lp-rom">daryo bo'ladi.</span></blockquote>
-          <div className="lp-pull-attribution">§ O'zbek xalq maqoli · VocabHelper tamoyili</div>
-        </div>
-      </section>
-
       <section className="lp-pricing" id="pricing">
         <div className="lp-wrap">
           <div className="lp-section-head">
-            <div className="lp-section-label">§ III · Obuna</div>
-            <h2 className="lp-section-h2">Chinakam bepul. Yoki chanqoqlar uchun <em>cheksiz</em>.</h2>
+            <div className="lp-section-label">Tariflar</div>
+            <h2 className="lp-section-h2">Free plan boshlash uchun yetadi. Premium ko'proq o'rganadiganlar uchun.</h2>
           </div>
           <div className="lp-price-grid">
             <div className="lp-tier">
-              <div className="lp-tier-kicker">Qiroatxona</div>
+              <div className="lp-tier-kicker">Free</div>
               <h3>Bepul</h3>
-              <div className="lp-tier-price">$0<span className="lp-per"> / abadiy</span></div>
+              <div className="lp-tier-price">0 UZS<span className="lp-per"> / doimiy</span></div>
               <ul>
                 <li><span>Kuniga yangi so'zlar</span><span className="lp-val">10 tagacha</span></li>
                 <li><span>Talaffuz (audio)</span><span className="lp-val">bor</span></li>
@@ -236,20 +227,20 @@ export function LandingPage({ onRegister }: { onRegister: () => void }): JSX.Ele
                 <li><span>Test rejimi</span><span className="lp-val">bor</span></li>
                 <li><span>Dashbord va do'stlar</span><span className="lp-val">bor</span></li>
               </ul>
-              <button className="lp-btn lp-ghost lp-tier-cta" type="button" onClick={onRegister}>O'qishni boshlash</button>
+              <button className="lp-btn lp-ghost lp-tier-cta" type="button" onClick={onRegister}>Boshlash</button>
             </div>
             <div className="lp-tier lp-tier-premium">
-              <div className="lp-tier-kicker">Shaxsiy kutubxona</div>
+              <div className="lp-tier-kicker">Premium</div>
               <h3>Cheksiz</h3>
-              <div className="lp-tier-price">$4<span className="lp-per"> / oyiga</span></div>
+              <div className="lp-tier-price">10 000 UZS<span className="lp-per"> / 30 kun</span></div>
               <ul>
                 <li><span>Kuniga yangi so'zlar</span><span className="lp-val">cheksiz</span></li>
-                <li><span>O'z to'plamlaringiz</span><span className="lp-val">bor</span></li>
-                <li><span>Oflayn takror</span><span className="lp-val">bor</span></li>
-                <li><span>Batafsil hisobotlar</span><span className="lp-val">bor</span></li>
-                <li><span>Turnir va klublar</span><span className="lp-val">bor</span></li>
+                <li><span>Kunlik limit</span><span className="lp-val">yo'q</span></li>
+                <li><span>Test mode</span><span className="lp-val">cheksiz</span></li>
+                <li><span>Progress dashboard</span><span className="lp-val">bor</span></li>
+                <li><span>Leaderboard</span><span className="lp-val">bor</span></li>
               </ul>
-              <button className="lp-btn lp-accent lp-tier-cta" type="button" onClick={onRegister}>Cheksiz boshlash</button>
+              <button className="lp-btn lp-accent lp-tier-cta" type="button" onClick={onRegister}>Premium olish</button>
             </div>
           </div>
         </div>
@@ -257,21 +248,21 @@ export function LandingPage({ onRegister }: { onRegister: () => void }): JSX.Ele
 
       <section className="lp-finale">
         <div className="lp-wrap">
-          <h2>Bugun boshlang. <em>Bir kichik qadam</em> — kechagidan ko'proq.</h2>
-          <p>Bepul hisob oching, birinchi kartangizni torting — qolganini ertangi kun hal qiladi.</p>
-          <button className="lp-btn lp-accent" type="button" onClick={onRegister}>Hisobimni ochish</button>
+          <h2>Har kuni ozroq. Lekin to'xtamasdan.</h2>
+          <p>10 daqiqa vaqt ajrating: yangi word, pronunciation, example va bitta qisqa test.</p>
+          <button className="lp-btn lp-accent" type="button" onClick={onRegister}>Boshlash</button>
         </div>
       </section>
 
       <footer className="lp-footer">
         <div className="lp-wrap lp-footer-inner">
-          <div className="lp-footer-colophon">VocabHelper · Times New Roman shriftida terilgan · Har ertalab sokin chop etiladi.</div>
-          <div>© MMXXVI · Barcha huquqlar himoyalangan.</div>
+          <div className="lp-footer-colophon">VocabHelper · English vocabulary uchun Telegram Mini App</div>
+          <div>@multilevelessays All rights reserved.</div>
         </div>
       </footer>
 
       <div className="lp-mobile-cta">
-        <button type="button" onClick={onRegister}>Bepul hisob ochish</button>
+        <button type="button" onClick={onRegister}>Boshlash</button>
         <div className="lp-fine">Kuniga 10 ta so'z — abadiy bepul</div>
       </div>
     </main>
