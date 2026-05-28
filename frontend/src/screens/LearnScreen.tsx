@@ -75,7 +75,7 @@ export function LearnScreen({
             },
           },
         }));
-        if (eventName === "learned" || eventName === "remembered" || eventName === "forgot") {
+        if (eventName === "learned" || eventName === "practice_later" || eventName === "remembered" || eventName === "forgot") {
           fetchNext(); // silent — card stays mounted until next word arrives
         }
       })

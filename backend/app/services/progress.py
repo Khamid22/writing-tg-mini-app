@@ -33,18 +33,31 @@ KNOWN_EVENTS = {"seen", "listened", "flipped", "learned", "practice_later"} | RE
 def next_word_for_user(db: Session, user: LearnerUser) -> tuple[WordItem | None, bool]:
     """Return (word, is_review). New unlearned words come first; once exhausted, fall back
     to the learned word that hasn't been reviewed for the longest (with weakest mastery as tiebreaker)."""
-    learned_ids = select(LearnerProgress.word_item_id).where(
+    touched_ids = select(LearnerProgress.word_item_id).where(
         LearnerProgress.user_id == user.id,
-        LearnerProgress.status.in_(LEARNED_STATUSES),
     )
     new_word = db.scalar(
         select(WordItem)
-        .where(WordItem.is_active.is_(True), WordItem.id.not_in(learned_ids))
+        .where(WordItem.is_active.is_(True), WordItem.id.not_in(touched_ids))
         .order_by(WordItem.id.asc())
         .limit(1)
     )
     if new_word:
         return new_word, False
+
+    learning_word = db.scalar(
+        select(WordItem)
+        .join(LearnerProgress, LearnerProgress.word_item_id == WordItem.id)
+        .where(
+            WordItem.is_active.is_(True),
+            LearnerProgress.user_id == user.id,
+            LearnerProgress.status.in_([ProgressStatus.SEEN.value, ProgressStatus.LEARNING.value]),
+        )
+        .order_by(LearnerProgress.last_reviewed_at.asc().nulls_first(), LearnerProgress.mastery_score.asc())
+        .limit(1)
+    )
+    if learning_word:
+        return learning_word, False
 
     review_word = db.scalar(
         select(WordItem)
@@ -106,8 +119,8 @@ def apply_word_event(db: Session, user: LearnerUser, word: WordItem, event: str)
     elif event == "forgot":
         progress.last_reviewed_at = now
         progress.mastery_score = max(0, progress.mastery_score - 10)
-        if progress.mastery_score < 25 and progress.status in LEARNED_STATUSES:
-            progress.status = ProgressStatus.LEARNING.value
+        if progress.status == ProgressStatus.MASTERED.value:
+            progress.status = ProgressStatus.LEARNED.value
 
     db.commit()
     db.refresh(progress)
@@ -121,4 +134,3 @@ def learned_count(db: Session, user_id: int) -> int:
             LearnerProgress.status.in_([ProgressStatus.LEARNED.value, ProgressStatus.MASTERED.value]),
         )
     ) or 0
-
