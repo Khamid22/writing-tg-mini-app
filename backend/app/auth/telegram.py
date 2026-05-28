@@ -11,6 +11,8 @@ from fastapi import HTTPException
 
 from app.config import get_settings
 
+_SESSION_TTL = 30 * 24 * 3600  # 30 days
+
 
 def _b64encode(data: bytes) -> str:
     return urlsafe_b64encode(data).decode().rstrip("=")
@@ -23,7 +25,8 @@ def _b64decode(data: str) -> bytes:
 
 def create_session_token(user_id: int) -> str:
     settings = get_settings()
-    payload = {"sub": user_id, "iat": int(time.time())}
+    now = int(time.time())
+    payload = {"sub": user_id, "iat": now, "exp": now + _SESSION_TTL}
     encoded_payload = _b64encode(json.dumps(payload, separators=(",", ":")).encode())
     signature = hmac.new(settings.secret_key.encode(), encoded_payload.encode(), hashlib.sha256).digest()
     return f"{encoded_payload}.{_b64encode(signature)}"
@@ -42,6 +45,8 @@ def verify_session_token(token: str) -> int:
 
     try:
         payload = json.loads(_b64decode(encoded_payload))
+        if int(time.time()) > payload.get("exp", 0):
+            raise HTTPException(status_code=401, detail="Session token expired")
         return int(payload["sub"])
     except (KeyError, ValueError, TypeError, json.JSONDecodeError) as exc:
         raise HTTPException(status_code=401, detail="Invalid session token") from exc

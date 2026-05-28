@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import random
+import secrets
 from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException
@@ -13,7 +13,7 @@ from app.services.limits import as_aware_utc
 
 
 def _generate_code() -> str:
-    return f"UZ-{random.randint(100000, 999999)}"
+    return f"UZ-{secrets.randbelow(900000) + 100000}"
 
 
 def payment_payload(payment: PaymentRequest) -> dict:

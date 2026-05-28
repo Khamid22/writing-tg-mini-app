@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.models import LearnerUser, PaymentRequest
+from app.models import LearnerUser, PaymentRequest  # LearnerUser kept for type hints
 from app.services.payments import (
     approve_payment,
     cancel_payment,
@@ -14,6 +14,7 @@ from app.services.payments import (
     payment_payload,
     submit_payment_screenshot,
 )
+from app.services.users import upsert_user_from_data
 from telegram_bot.client import TelegramBotClient
 from telegram_bot.keyboards import payment_keyboard, start_keyboard
 
@@ -39,34 +40,14 @@ def user_label(user: LearnerUser) -> str:
 
 
 def upsert_bot_user(db: Session, from_user: dict, chat_id: int | str | None) -> LearnerUser:
-    settings = get_settings()
-    telegram_user_id = str(from_user.get("id") or chat_id)
-    first_name = from_user.get("first_name") or "Telegram"
-    last_name = from_user.get("last_name")
-    username = from_user.get("username")
-    display_name = " ".join(part for part in (first_name, last_name) if part).strip() or username or "Telegram user"
-
-    user = db.scalar(select(LearnerUser).where(LearnerUser.telegram_user_id == telegram_user_id))
-    if not user:
-        user = LearnerUser(
-            telegram_user_id=telegram_user_id,
-            username=username,
-            first_name=first_name,
-            last_name=last_name,
-            display_name=display_name,
-            language_code=from_user.get("language_code"),
-            timezone=settings.default_timezone,
-        )
-        db.add(user)
-    else:
-        user.username = username
-        user.first_name = first_name
-        user.last_name = last_name
-        user.display_name = display_name
-        user.language_code = from_user.get("language_code")
-    db.commit()
-    db.refresh(user)
-    return user
+    return upsert_user_from_data(
+        db,
+        telegram_user_id=str(from_user.get("id") or chat_id),
+        first_name=from_user.get("first_name") or "Telegram",
+        last_name=from_user.get("last_name"),
+        username=from_user.get("username"),
+        language_code=from_user.get("language_code"),
+    )
 
 
 def admin_payment_caption(payment: PaymentRequest) -> str:

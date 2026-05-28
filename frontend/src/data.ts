@@ -137,12 +137,4 @@ export const words: Word[] = [
   },
 ];
 
-export const leaderboard = [
-  { id: 201, displayName: "Madina", username: "madina", points: 1240, learned: 186, streak: 18, accuracy: 91 },
-  { id: 202, displayName: "Aziz", username: "aziz", points: 1115, learned: 162, streak: 14, accuracy: 88 },
-  { id: 203, displayName: "Sevara", username: "sevara", points: 980, learned: 149, streak: 12, accuracy: 85 },
-  { id: 204, displayName: "Jasur", username: "jasur", points: 870, learned: 131, streak: 9, accuracy: 83 },
-];
-
-export type LeaderboardUser = (typeof leaderboard)[number];
 

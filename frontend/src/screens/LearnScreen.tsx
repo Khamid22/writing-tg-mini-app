@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { JSX } from "react";
 import { Check, Flame, Headphones, RotateCcw } from "lucide-react";
 import type { ApiLimit, ApiWord } from "../api";
@@ -17,20 +17,9 @@ export function LearnScreen({
 }): JSX.Element {
   const [word, setWord] = useState<ApiWord | null>(null);
   const [limit, setLimit] = useState<ApiLimit | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [flipped, setFlipped] = useState(false);
-
-  function loadNextWord(): void {
-    setLoading(true);
-    fetchTodayWord()
-      .then(({ item, limit: newLimit }) => {
-        setWord(item);
-        setLimit(newLimit);
-        syncLimitToState(newLimit);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }
+  const fetching = useRef(false);
 
   function syncLimitToState(lim: ApiLimit): void {
     updateState((current) => ({
@@ -40,9 +29,29 @@ export function LearnScreen({
     }));
   }
 
+  // Silent fetch: keeps the current card mounted so CSS transitions survive
+  function fetchNext(initial = false): void {
+    if (fetching.current) return;
+    fetching.current = true;
+    fetchTodayWord()
+      .then(({ item, limit: newLimit }) => {
+        setWord(item);
+        setLimit(newLimit);
+        syncLimitToState(newLimit);
+        if (initial) setInitialLoading(false);
+        setFlipped(false);
+      })
+      .catch(() => {
+        if (initial) setInitialLoading(false);
+      })
+      .finally(() => {
+        fetching.current = false;
+      });
+  }
+
   useEffect(() => {
     if (!apiToken) return;
-    loadNextWord();
+    fetchNext(true);
   }, [apiToken]);
 
   function recordEvent(eventName: string): void {
@@ -65,8 +74,7 @@ export function LearnScreen({
           },
         }));
         if (eventName === "learned") {
-          setFlipped(false);
-          loadNextWord();
+          fetchNext(); // silent — card stays mounted until new word arrives
         }
       })
       .catch(() => {});
@@ -89,7 +97,7 @@ export function LearnScreen({
     if (!flipped) recordEvent("flipped");
   }
 
-  if (!apiToken || loading) {
+  if (!apiToken || initialLoading) {
     return (
       <section className="empty-panel">
         <p className="muted">Ulanmoqda...</p>
@@ -124,7 +132,6 @@ export function LearnScreen({
     );
   }
 
-  const remaining = limit.daily_remaining;
   const learnedTotal = Object.values(state.progress).filter(
     (p) => p.status === "learned" || p.status === "mastered",
   ).length;
@@ -132,7 +139,11 @@ export function LearnScreen({
   return (
     <section className="learn-layout">
       <div className="daily-strip">
-        <span>{state.tier === "paid" ? "Bugun cheksiz so'z" : `${remaining} ta bepul so'z qoldi`}</span>
+        <span>
+          {state.tier === "paid"
+            ? "Bugun cheksiz so'z"
+            : `${limit.daily_remaining} ta bepul so'z qoldi`}
+        </span>
         <strong>{learnedTotal} ta o'rganildi</strong>
       </div>
 

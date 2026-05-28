@@ -4,6 +4,15 @@ import httpx
 
 from app.config import get_settings
 
+_shared_client: httpx.AsyncClient | None = None
+
+
+def _get_client() -> httpx.AsyncClient:
+    global _shared_client
+    if _shared_client is None:
+        _shared_client = httpx.AsyncClient(timeout=10)
+    return _shared_client
+
 
 class TelegramBotClient:
     def __init__(self) -> None:
@@ -18,12 +27,12 @@ class TelegramBotClient:
     async def request(self, method: str, payload: dict) -> None:
         if not self.enabled:
             return
-        async with httpx.AsyncClient(timeout=10) as client:
-            try:
-                response = await client.post(f"{self.base_url}/{method}", json=payload)
-                response.raise_for_status()
-            except httpx.HTTPError:
-                return
+        client = _get_client()
+        try:
+            response = await client.post(f"{self.base_url}/{method}", json=payload)
+            response.raise_for_status()
+        except httpx.HTTPError:
+            return
 
     async def send_message(self, chat_id: int | str, text: str, reply_markup: dict | None = None) -> None:
         payload: dict = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
