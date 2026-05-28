@@ -3010,6 +3010,13 @@ h2 {
   font-size: 32px;
 }
 
+.admin-topbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .admin-button {
   min-height: 38px;
   display: inline-flex;
@@ -3088,7 +3095,7 @@ h2 {
 }
 
 .admin-words-layout {
-  grid-template-columns: minmax(560px, 1fr) minmax(340px, 0.48fr);
+  grid-template-columns: 1fr;
   align-items: start;
   height: calc(100dvh - 104px);
   min-height: 0;
@@ -3154,22 +3161,11 @@ h2 {
   place-items: center;
 }
 
-.admin-editor {
-  display: grid;
-  height: 100%;
-  min-height: 0;
-}
-
-.admin-editor > .admin-panel {
-  min-height: 0;
-  overflow: hidden;
-}
-
 .admin-form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-  max-height: calc(100dvh - 218px);
+  max-height: calc(100dvh - 220px);
   overflow: auto;
   padding-right: 4px;
 }
@@ -3207,7 +3203,8 @@ h2 {
   margin-top: 10px;
 }
 
-.admin-preview-modal {
+.admin-word-modal,
+.admin-upload-modal {
   position: fixed;
   inset: 0;
   z-index: 80;
@@ -3217,13 +3214,44 @@ h2 {
   background: rgba(26, 24, 20, 0.34);
 }
 
-.admin-preview-dialog {
-  width: min(100%, 560px);
+.admin-word-dialog,
+.admin-upload-dialog {
   max-height: calc(100dvh - 48px);
   overflow: auto;
   border: 1px solid var(--admin-rule);
   background: #f7f6f3;
   padding: 18px;
+}
+
+.admin-word-dialog {
+  width: min(100%, 1080px);
+}
+
+.admin-upload-dialog {
+  width: min(100%, 480px);
+}
+
+.admin-word-dialog-grid {
+  display: grid;
+  grid-template-columns: minmax(420px, 1fr) minmax(360px, 0.72fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.admin-word-form-pane,
+.admin-word-preview-pane {
+  min-width: 0;
+}
+
+.admin-preview-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-variant: small-caps;
+  letter-spacing: 0.14em;
 }
 
 .admin-preview-card {
@@ -3245,6 +3273,53 @@ h2 {
 .admin-preview-back strong {
   color: var(--admin-ink);
   font-weight: normal;
+}
+
+.admin-upload-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.admin-upload-tabs button {
+  min-height: 40px;
+  border: 1px solid var(--admin-rule);
+  background: transparent;
+  color: var(--admin-ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.admin-upload-tabs button[data-active="true"] {
+  border-color: var(--admin-accent);
+  background: var(--admin-accent);
+  color: var(--admin-bg);
+}
+
+.admin-upload-box {
+  display: grid;
+  gap: 8px;
+  border: 1px dashed var(--admin-rule);
+  background: var(--admin-paper);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.admin-upload-box span {
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-variant: small-caps;
+  letter-spacing: 0.14em;
+}
+
+.admin-upload-box input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--admin-rule);
+  background: #f7f6f3;
+  padding: 9px 10px;
+  font: inherit;
 }
 
 .admin-placeholder {
@@ -3278,6 +3353,10 @@ h2 {
   .admin-editor {
     height: auto;
   }
+
+  .admin-word-dialog-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 760px) {
@@ -3302,6 +3381,7 @@ h2 {
   }
 
   .admin-topbar,
+  .admin-topbar-actions,
   .admin-tools {
     grid-template-columns: 1fr;
     display: grid;

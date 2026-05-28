@@ -64,7 +64,9 @@ export function AdminApp(): JSX.Element {
   const [level, setLevel] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadMode, setUploadMode] = useState<"file" | "sheets">("file");
 
   const authenticated = token.trim().length > 0;
 
@@ -127,6 +129,7 @@ export function AdminApp(): JSX.Element {
     setSelectedWord(word);
     setForm(toInput(word));
     setActiveTab("words");
+    setEditorOpen(true);
     setMessage("");
   }
 
@@ -134,6 +137,7 @@ export function AdminApp(): JSX.Element {
     setSelectedWord(null);
     setForm(emptyWord);
     setActiveTab("words");
+    setEditorOpen(true);
     setMessage("");
   }
 
@@ -152,6 +156,7 @@ export function AdminApp(): JSX.Element {
       setSelectedWord(saved);
       setForm(toInput(saved));
       setMessage(selectedWord ? "Word yangilandi." : "Yangi word qo'shildi.");
+      setEditorOpen(false);
       loadSummary();
       loadWords();
     } catch {
@@ -243,9 +248,16 @@ export function AdminApp(): JSX.Element {
             <p>{activeTab === "words" ? "Content library" : "Admin workspace"}</p>
             <h1>{navItems.find((item) => item.tab === activeTab)?.label}</h1>
           </div>
-          <button className="admin-button primary-button" type="button" onClick={newWord}>
-            <Plus size={16} /> Add word
-          </button>
+          <div className="admin-topbar-actions">
+            {activeTab === "words" ? (
+              <button className="admin-button secondary-button" type="button" onClick={() => setUploadOpen(true)}>
+                <Plus size={16} /> Upload File
+              </button>
+            ) : null}
+            <button className="admin-button primary-button" type="button" onClick={newWord}>
+              <Plus size={16} /> Add word
+            </button>
+          </div>
         </header>
 
         {message ? <div className="admin-message">{message}</div> : null}
@@ -324,13 +336,31 @@ export function AdminApp(): JSX.Element {
               </div>
               {loading ? <p className="muted">Loading...</p> : null}
             </section>
+          </section>
+        ) : null}
 
-            <section className="admin-editor">
-              <div className="admin-panel">
-                <div className="admin-panel-head">
-                  <h2>{selectedWord ? "Edit word" : "Add word"}</h2>
-                  <span>{statusLabel(form)}</span>
-                </div>
+        {!["dashboard", "words"].includes(activeTab) ? (
+          <section className="admin-panel admin-placeholder">
+            <h2>{navItems.find((item) => item.tab === activeTab)?.label}</h2>
+            <p>Bu bo'lim keyingi bosqich uchun joy tayyorlab qo'yildi.</p>
+          </section>
+        ) : null}
+      </main>
+
+      {editorOpen ? (
+        <div className="admin-word-modal" role="presentation" onClick={() => setEditorOpen(false)}>
+          <section
+            aria-modal="true"
+            className="admin-word-dialog"
+            role="dialog"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="admin-panel-head">
+              <h2>{selectedWord ? "Edit word" : "Add word"}</h2>
+              <button type="button" onClick={() => setEditorOpen(false)}>Close</button>
+            </div>
+            <div className="admin-word-dialog-grid">
+              <div className="admin-word-form-pane">
                 <div className="admin-form-grid">
                   <label>Word<input value={form.word} onChange={(e) => updateField("word", e.target.value)} /></label>
                   <label>Type<input value={form.word_type} onChange={(e) => updateField("word_type", e.target.value)} /></label>
@@ -350,57 +380,73 @@ export function AdminApp(): JSX.Element {
                 </div>
                 <div className="admin-actions">
                   <button className="secondary-button" type="button" onClick={newWord}>Clear</button>
-                  <button className="secondary-button" type="button" onClick={() => setPreviewOpen(true)}>
-                    <Eye size={16} /> Preview
-                  </button>
                   <button className="primary-button" type="button" disabled={loading} onClick={submitWord}>
                     <Save size={16} /> Save word
                   </button>
                 </div>
               </div>
-            </section>
+              <div className="admin-word-preview-pane">
+                <div className="admin-preview-title"><Eye size={16} /> Preview</div>
+                <div className="flashcard admin-preview-card">
+                  <div className="flashcard-side flashcard-front">
+                    <div className="flashcard-meta">
+                      <span>Karta · {preview.level || "A1"}</span>
+                      <span>{preview.word_type || "type"}</span>
+                    </div>
+                    <div className="flashcard-word-block">
+                      <h2>{preview.word || "word"}</h2>
+                      <p className="phonetic">{preview.phonetic || "/.../"} · {preview.word_type || "type"}</p>
+                    </div>
+                    <div className="flashcard-hint"><em>Ma'noni ko'rish uchun bosing.</em><span>♪</span></div>
+                  </div>
+                </div>
+                <div className="admin-preview-back">
+                  <strong>{preview.english_definition || "English definition"}</strong>
+                  <span>{preview.uzbek_definition || "Uzbek meaning"}</span>
+                  <em>{preview.english_example || "English example"}</em>
+                  <span>{preview.uzbek_example || "Uzbek example"}</span>
+                </div>
+              </div>
+            </div>
           </section>
-        ) : null}
+        </div>
+      ) : null}
 
-        {!["dashboard", "words"].includes(activeTab) ? (
-          <section className="admin-panel admin-placeholder">
-            <h2>{navItems.find((item) => item.tab === activeTab)?.label}</h2>
-            <p>Bu bo'lim keyingi bosqich uchun joy tayyorlab qo'yildi.</p>
-          </section>
-        ) : null}
-      </main>
-
-      {previewOpen ? (
-        <div className="admin-preview-modal" role="presentation" onClick={() => setPreviewOpen(false)}>
+      {uploadOpen ? (
+        <div className="admin-upload-modal" role="presentation" onClick={() => setUploadOpen(false)}>
           <section
             aria-modal="true"
-            className="admin-preview-dialog"
+            className="admin-upload-dialog"
             role="dialog"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="admin-panel-head">
-              <h2>Mini app preview</h2>
-              <button type="button" onClick={() => setPreviewOpen(false)}>Close</button>
+              <h2>Upload words</h2>
+              <button type="button" onClick={() => setUploadOpen(false)}>Close</button>
             </div>
-            <div className="flashcard admin-preview-card">
-              <div className="flashcard-side flashcard-front">
-                <div className="flashcard-meta">
-                  <span>Karta · {preview.level || "A1"}</span>
-                  <span>{preview.word_type || "type"}</span>
-                </div>
-                <div className="flashcard-word-block">
-                  <h2>{preview.word || "word"}</h2>
-                  <p className="phonetic">{preview.phonetic || "/.../"} · {preview.word_type || "type"}</p>
-                </div>
-                <div className="flashcard-hint"><em>Ma'noni ko'rish uchun bosing.</em><span>♪</span></div>
-              </div>
+            <div className="admin-upload-tabs">
+              <button type="button" data-active={uploadMode === "file"} onClick={() => setUploadMode("file")}>
+                CSV / Excel file
+              </button>
+              <button type="button" data-active={uploadMode === "sheets"} onClick={() => setUploadMode("sheets")}>
+                Google Sheets
+              </button>
             </div>
-            <div className="admin-preview-back">
-              <strong>{preview.english_definition || "English definition"}</strong>
-              <span>{preview.uzbek_definition || "Uzbek meaning"}</span>
-              <em>{preview.english_example || "English example"}</em>
-              <span>{preview.uzbek_example || "Uzbek example"}</span>
-            </div>
+            {uploadMode === "file" ? (
+              <label className="admin-upload-box">
+                <span>Choose .csv or .xlsx file</span>
+                <input type="file" accept=".csv,.xlsx,.xls" />
+              </label>
+            ) : (
+              <label className="admin-upload-box">
+                <span>Paste public Google Sheets CSV link</span>
+                <input type="url" placeholder="https://docs.google.com/spreadsheets/..." />
+              </label>
+            )}
+            <p className="muted">
+              Columns: word, word_type, phonetic, english_definition, uzbek_definition,
+              english_example, uzbek_example, level, is_active.
+            </p>
           </section>
         </div>
       ) : null}
