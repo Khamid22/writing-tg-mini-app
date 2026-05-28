@@ -2,7 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 import type { JSX } from "react";
 import { BookOpen, Edit3, Eye, LayoutDashboard, ListFilter, LogOut, Plus, Save, Search, Trash2 } from "lucide-react";
 import type { AdminSummary, AdminWord, AdminWordInput } from "./adminApi";
-import { createAdminWord, disableAdminWord, fetchAdminSummary, fetchAdminWords, loginAdmin, updateAdminWord } from "./adminApi";
+import {
+  createAdminWord,
+  disableAdminWord,
+  fetchAdminSummary,
+  fetchAdminWords,
+  importAdminWordsFile,
+  importAdminWordsUrl,
+  loginAdmin,
+  updateAdminWord,
+} from "./adminApi";
 import { Metric } from "./components/Metric";
 
 const ADMIN_SESSION_KEY = "vocabhelper-admin-session";
@@ -81,6 +90,9 @@ export function AdminApp(): JSX.Element {
   const [editorOpen, setEditorOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadMode, setUploadMode] = useState<"file" | "sheets">("file");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadUrl, setUploadUrl] = useState("");
+  const [uploadAsPublished, setUploadAsPublished] = useState(true);
 
   const authenticated = token.trim().length > 0;
 
@@ -194,6 +206,36 @@ export function AdminApp(): JSX.Element {
       loadWords();
     } catch {
       setMessage("Wordni draft qilishda xatolik bor.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function uploadWords(): Promise<void> {
+    if (!token) return;
+    if (uploadMode === "file" && !uploadFile) {
+      setMessage("Avval CSV yoki XLSX file tanlang.");
+      return;
+    }
+    if (uploadMode === "sheets" && !uploadUrl.trim()) {
+      setMessage("Google Sheets CSV linkini kiriting.");
+      return;
+    }
+    setLoading(true);
+    setMessage("");
+    try {
+      const result = uploadMode === "file" && uploadFile
+        ? await importAdminWordsFile(token, uploadFile, uploadAsPublished)
+        : await importAdminWordsUrl(token, uploadUrl.trim(), uploadAsPublished);
+      const skipped = result.skipped_count ? ` ${result.skipped_count} qator o'tkazib yuborildi.` : "";
+      setMessage(`${result.imported} ta word yuklandi.${skipped}`);
+      setUploadOpen(false);
+      setUploadFile(null);
+      setUploadUrl("");
+      loadSummary();
+      loadWords();
+    } catch {
+      setMessage("Upload ishlamadi. File ustunlari yoki linkni tekshiring.");
     } finally {
       setLoading(false);
     }
@@ -460,19 +502,45 @@ export function AdminApp(): JSX.Element {
             {uploadMode === "file" ? (
               <label className="admin-upload-box">
                 <span>Choose .csv or .xlsx file</span>
-                <input type="file" accept=".csv,.xlsx,.xls" />
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xlsm"
+                  onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)}
+                />
+                {uploadFile ? <strong>{uploadFile.name}</strong> : null}
               </label>
             ) : (
               <label className="admin-upload-box">
                 <span>Paste public Google Sheets CSV link</span>
-                <input type="url" placeholder="https://docs.google.com/spreadsheets/..." />
+                <input
+                  type="url"
+                  placeholder="https://docs.google.com/spreadsheets/..."
+                  value={uploadUrl}
+                  onChange={(event) => setUploadUrl(event.target.value)}
+                />
               </label>
             )}
+            <label className="admin-check admin-upload-check">
+              <input
+                type="checkbox"
+                checked={uploadAsPublished}
+                onChange={(event) => setUploadAsPublished(event.target.checked)}
+              />
+              Publish uploaded words
+            </label>
             <p className="muted">
               Columns: word, word_type, phonetic, english_definition, uzbek_definition,
               english_example, uzbek_example, level, topic, collection, tags, collocations,
               common_mistake, writing_prompt, difficulty_order, is_active.
             </p>
+            <div className="admin-actions">
+              <button className="secondary-button" type="button" onClick={() => setUploadOpen(false)}>
+                Cancel
+              </button>
+              <button className="primary-button" type="button" disabled={loading} onClick={() => void uploadWords()}>
+                {loading ? "Uploading..." : "Upload words"}
+              </button>
+            </div>
           </section>
         </div>
       ) : null}

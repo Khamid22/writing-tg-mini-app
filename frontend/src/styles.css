@@ -3322,6 +3322,10 @@ h2 {
   font: inherit;
 }
 
+.admin-upload-check {
+  margin: 4px 0 10px;
+}
+
 .admin-placeholder {
   max-width: 620px;
 }

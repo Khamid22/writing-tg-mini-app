@@ -56,6 +56,12 @@ export type AdminLoginResponse = {
   token: string;
 };
 
+export type AdminImportResponse = {
+  imported: number;
+  skipped: string[];
+  skipped_count: number;
+};
+
 function apiBaseUrl(): string {
   const configured = import.meta.env.VITE_API_BASE_URL as string | undefined;
   if (configured) return configured.replace(/\/$/, "");
@@ -66,10 +72,11 @@ function apiBaseUrl(): string {
 }
 
 async function adminFetch<T>(path: string, adminToken: string, options: RequestInit = {}): Promise<T> {
+  const isFormData = options.body instanceof FormData;
   const response = await fetch(`${apiBaseUrl()}${path}`, {
     ...options,
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       Authorization: `Bearer ${adminToken}`,
       ...(options.headers ?? {}),
     },
@@ -132,5 +139,30 @@ export async function updateAdminWord(
 export async function disableAdminWord(adminToken: string, wordId: number): Promise<AdminWord> {
   return adminFetch<AdminWord>(`/api/admin/words/${wordId}`, adminToken, {
     method: "DELETE",
+  });
+}
+
+export async function importAdminWordsFile(
+  adminToken: string,
+  file: File,
+  defaultActive: boolean,
+): Promise<AdminImportResponse> {
+  const formData = new FormData();
+  formData.append("upload", file);
+  formData.append("default_active", String(defaultActive));
+  return adminFetch<AdminImportResponse>("/api/admin/words/import-file", adminToken, {
+    method: "POST",
+    body: formData,
+  });
+}
+
+export async function importAdminWordsUrl(
+  adminToken: string,
+  url: string,
+  defaultActive: boolean,
+): Promise<AdminImportResponse> {
+  return adminFetch<AdminImportResponse>("/api/admin/words/import-url", adminToken, {
+    method: "POST",
+    body: JSON.stringify({ url, default_active: defaultActive }),
   });
 }

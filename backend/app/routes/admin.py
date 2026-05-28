@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import csv
+import io
 import json
 import time
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
+import httpx
+from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
@@ -107,6 +110,11 @@ class AdminWordPatch(BaseModel):
     is_active: bool | None = None
 
 
+class AdminImportUrlRequest(BaseModel):
+    url: str = Field(min_length=1)
+    default_active: bool = True
+
+
 def require_admin_token(
     authorization: str | None = Header(default=None, alias="Authorization"),
     x_admin_token: str | None = Header(default=None, alias="X-Admin-Token"),
@@ -125,6 +133,107 @@ def admin_word_payload(word: WordItem) -> dict:
     payload["is_active"] = word.is_active
     payload["created_at"] = word.created_at.isoformat() if word.created_at else None
     return payload
+
+
+def _clean_cell(value: object) -> str:
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
+def _bool_cell(value: object, default: bool = True) -> bool:
+    text_value = _clean_cell(value).lower()
+    if not text_value:
+        return default
+    return text_value in {"1", "true", "yes", "y", "published", "active"}
+
+
+def _int_cell(value: object, default: int = 0) -> int:
+    try:
+        return max(0, int(float(_clean_cell(value))))
+    except ValueError:
+        return default
+
+
+def _word_from_row(row: dict[str, object], default_active: bool) -> tuple[WordItem | None, str | None]:
+    normalized = {key.strip().lower(): value for key, value in row.items() if key}
+    word = _clean_cell(normalized.get("word"))
+    if not word:
+        return None, "Missing word"
+
+    english_definition = _clean_cell(normalized.get("english_definition") or normalized.get("definition"))
+    uzbek_definition = _clean_cell(normalized.get("uzbek_definition") or normalized.get("uzbek_meaning") or normalized.get("meaning"))
+    english_example = _clean_cell(normalized.get("english_example") or normalized.get("example"))
+    uzbek_example = _clean_cell(normalized.get("uzbek_example") or normalized.get("translation"))
+    missing = [
+        name
+        for name, value in {
+            "english_definition": english_definition,
+            "uzbek_definition": uzbek_definition,
+            "english_example": english_example,
+            "uzbek_example": uzbek_example,
+        }.items()
+        if not value
+    ]
+    if missing:
+        return None, f"{word}: missing {', '.join(missing)}"
+
+    return (
+        WordItem(
+            word=word,
+            word_type=_clean_cell(normalized.get("word_type") or normalized.get("type")) or "word",
+            phonetic=_clean_cell(normalized.get("phonetic")) or "-",
+            english_definition=english_definition,
+            uzbek_definition=uzbek_definition,
+            english_example=english_example,
+            uzbek_example=uzbek_example,
+            level=_clean_cell(normalized.get("level")) or "A1",
+            topic=_clean_cell(normalized.get("topic")) or "General",
+            collection=_clean_cell(normalized.get("collection")) or "Daily Vocabulary",
+            tags=_clean_cell(normalized.get("tags")),
+            collocations=_clean_cell(normalized.get("collocations")),
+            common_mistake=_clean_cell(normalized.get("common_mistake")),
+            writing_prompt=_clean_cell(normalized.get("writing_prompt")),
+            difficulty_order=_int_cell(normalized.get("difficulty_order")),
+            audio_url=_clean_cell(normalized.get("audio_url")) or None,
+            is_active=_bool_cell(normalized.get("is_active"), default_active),
+        ),
+        None,
+    )
+
+
+def _rows_from_csv(content: bytes) -> list[dict[str, object]]:
+    text_content = content.decode("utf-8-sig")
+    return list(csv.DictReader(io.StringIO(text_content)))
+
+
+def _rows_from_xlsx(content: bytes) -> list[dict[str, object]]:
+    from openpyxl import load_workbook
+
+    workbook = load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+    sheet = workbook.active
+    rows = list(sheet.iter_rows(values_only=True))
+    if not rows:
+        return []
+    headers = [_clean_cell(cell).lower() for cell in rows[0]]
+    parsed_rows = []
+    for values in rows[1:]:
+        parsed_rows.append({headers[index]: value for index, value in enumerate(values) if index < len(headers)})
+    return parsed_rows
+
+
+def _import_rows(rows: list[dict[str, object]], default_active: bool, db: Session) -> dict:
+    imported = 0
+    skipped: list[str] = []
+    for index, row in enumerate(rows, start=2):
+        word, error = _word_from_row(row, default_active)
+        if error or not word:
+            skipped.append(f"Row {index}: {error or 'Invalid row'}")
+            continue
+        db.add(word)
+        imported += 1
+    db.commit()
+    return {"imported": imported, "skipped": skipped[:25], "skipped_count": len(skipped)}
 
 
 @router.post("/login")
@@ -221,6 +330,41 @@ def create_admin_word(
     db.commit()
     db.refresh(word)
     return admin_word_payload(word)
+
+
+@router.post("/words/import-file")
+async def import_admin_words_file(
+    upload: UploadFile = File(...),
+    default_active: bool = Form(default=True),
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin_token),
+) -> dict:
+    filename = (upload.filename or "").lower()
+    content = await upload.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty")
+    if filename.endswith(".csv"):
+        rows = _rows_from_csv(content)
+    elif filename.endswith((".xlsx", ".xlsm")):
+        rows = _rows_from_xlsx(content)
+    else:
+        raise HTTPException(status_code=400, detail="Upload CSV or XLSX file")
+    return _import_rows(rows, default_active, db)
+
+
+@router.post("/words/import-url")
+async def import_admin_words_url(
+    payload: AdminImportUrlRequest,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_admin_token),
+) -> dict:
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            response = await client.get(payload.url)
+            response.raise_for_status()
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=400, detail="Could not read Google Sheets CSV link") from exc
+    return _import_rows(_rows_from_csv(response.content), payload.default_active, db)
 
 
 @router.patch("/words/{word_id}")
