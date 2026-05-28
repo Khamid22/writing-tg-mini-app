@@ -702,6 +702,10 @@ h2 {
   backdrop-filter: blur(14px);
 }
 
+.app-nav-brand {
+  display: none;
+}
+
 .nav-button {
   min-width: 0;
   height: 48px;
@@ -2582,7 +2586,44 @@ h2 {
 
   .bottom-nav {
     width: 240px;
-    padding: 32px 14px;
+    padding: 24px 14px 32px;
+  }
+
+  .app-nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 52px;
+    padding: 0 10px 18px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--lp-rule);
+    color: var(--lp-ink);
+  }
+
+  .app-nav-logo {
+    width: 36px;
+    height: 36px;
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border: 1px solid var(--lp-accent);
+    border-radius: 50%;
+    color: var(--lp-accent);
+    font-size: 13px;
+    font-variant: small-caps;
+    letter-spacing: 0.08em;
+    line-height: 1;
+  }
+
+  .app-nav-title {
+    min-width: 0;
+    color: var(--lp-ink);
+    font-size: 20px;
+    font-style: italic;
+    line-height: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .nav-button {

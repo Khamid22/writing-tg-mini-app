@@ -117,6 +117,10 @@ export function App(): JSX.Element {
       {selectedUser ? <PublicProfile user={selectedUser} onClose={() => setSelectedUser(null)} /> : null}
 
       <nav aria-label="Main navigation" className="bottom-nav">
+        <div className="app-nav-brand" aria-hidden="true">
+          <span className="app-nav-logo">VH</span>
+          <span className="app-nav-title">VocabHelper</span>
+        </div>
         {navItems.map((item) => {
           const Icon = item.icon;
           return (
