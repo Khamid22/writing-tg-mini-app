@@ -12,23 +12,42 @@ from app.models import LearnerDailyUsage, LearnerProgress, LearnerUser, PointsEv
 from app.services.limits import get_or_create_usage
 
 
+WEAK_MASTERY_THRESHOLD = 60
+
+
+def _pick_quiz_words(
+    candidates: list[tuple[WordItem, int]],
+    question_count: int,
+) -> list[WordItem]:
+    """Two-bucket rotation: weak words always come first, strong words fill remaining slots.
+
+    Each bucket is shuffled, so consecutive quizzes never repeat the same set
+    unless the learner has very few words. Words below the mastery threshold
+    keep coming back until improved.
+    """
+    weak = [w for w, score in candidates if score < WEAK_MASTERY_THRESHOLD]
+    strong = [w for w, score in candidates if score >= WEAK_MASTERY_THRESHOLD]
+    random.shuffle(weak)
+    random.shuffle(strong)
+    return (weak + strong)[: max(1, min(question_count, len(candidates)))]
+
+
 def start_quiz(db: Session, user: LearnerUser, question_count: int, mode: str) -> tuple[QuizAttempt, list[QuizAnswer]]:
-    learned_words = list(
-        db.scalars(
-            select(WordItem)
+    candidates = list(
+        db.execute(
+            select(WordItem, LearnerProgress.mastery_score)
             .join(LearnerProgress, LearnerProgress.word_item_id == WordItem.id)
             .where(
                 LearnerProgress.user_id == user.id,
                 LearnerProgress.status.in_([ProgressStatus.LEARNED.value, ProgressStatus.MASTERED.value]),
             )
-            .order_by(WordItem.id.asc())
-        )
+        ).all()
     )
-    if not learned_words:
+    if not candidates:
         return QuizAttempt(user_id=user.id, mode=mode, total_questions=0), []
 
     all_words = list(db.scalars(select(WordItem).where(WordItem.is_active.is_(True))))
-    selected_words = learned_words[: max(1, min(question_count, len(learned_words)))]
+    selected_words = _pick_quiz_words(candidates, question_count)
     attempt = QuizAttempt(user_id=user.id, mode=mode, total_questions=len(selected_words))
     db.add(attempt)
     db.flush()
