@@ -1,5 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { AdminApp } from "./AdminApp";
 import { App } from "./App";
 import "./styles.css";
 
@@ -56,8 +57,10 @@ safeTelegramCall(() => telegramApp?.onEvent?.("contentSafeAreaChanged", setTeleg
 window.visualViewport?.addEventListener("resize", setTelegramViewportVars);
 window.addEventListener("resize", setTelegramViewportVars);
 
+const RootApp = window.location.pathname.startsWith("/admin") ? AdminApp : App;
+
 createRoot(document.getElementById("root") as HTMLElement).render(
   <StrictMode>
-    <App />
+    <RootApp />
   </StrictMode>,
 );

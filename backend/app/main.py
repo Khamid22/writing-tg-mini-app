@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
 from app.db.session import init_db
-from app.routes import auth, dashboard, leaderboard, payments, telegram, tests, words
+from app.routes import admin, auth, dashboard, leaderboard, payments, telegram, tests, words
 from app.seed import seed_words
 
 
@@ -33,6 +33,7 @@ def create_app() -> FastAPI:
     app.include_router(tests.router)
     app.include_router(dashboard.router)
     app.include_router(leaderboard.router)
+    app.include_router(admin.router)
     app.include_router(payments.router)
     app.include_router(payments.admin_router)
     app.include_router(telegram.router)
