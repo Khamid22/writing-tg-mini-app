@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { JSX } from "react";
-import { Check, Flame, Headphones, RotateCcw } from "lucide-react";
-import type { ApiLimit, ApiWord } from "../api";
+import { Check, Flame, Headphones, RotateCcw, X } from "lucide-react";
+import type { ApiLimit, ApiWord, WordEvent } from "../api";
 import { fetchTodayWord, sendWordEvent } from "../api";
 import { getTodayKey } from "../storage";
 import type { LearnerState } from "../types";
@@ -17,6 +17,7 @@ export function LearnScreen({
 }): JSX.Element {
   const [word, setWord] = useState<ApiWord | null>(null);
   const [limit, setLimit] = useState<ApiLimit | null>(null);
+  const [isReview, setIsReview] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [flipped, setFlipped] = useState(false);
   const fetching = useRef(false);
@@ -34,8 +35,9 @@ export function LearnScreen({
     if (fetching.current) return;
     fetching.current = true;
     fetchTodayWord()
-      .then(({ item, limit: newLimit }) => {
+      .then(({ item, is_review, limit: newLimit }) => {
         setWord(item);
+        setIsReview(is_review);
         setLimit(newLimit);
         syncLimitToState(newLimit);
         if (initial) setInitialLoading(false);
@@ -54,7 +56,7 @@ export function LearnScreen({
     fetchNext(true);
   }, [apiToken]);
 
-  function recordEvent(eventName: string): void {
+  function recordEvent(eventName: WordEvent): void {
     if (!word) return;
     sendWordEvent(word.id, eventName)
       .then(({ progress, limit: newLimit }) => {
@@ -73,8 +75,8 @@ export function LearnScreen({
             },
           },
         }));
-        if (eventName === "learned") {
-          fetchNext(); // silent — card stays mounted until new word arrives
+        if (eventName === "learned" || eventName === "remembered" || eventName === "forgot") {
+          fetchNext(); // silent — card stays mounted until next word arrives
         }
       })
       .catch(() => {});
@@ -105,7 +107,7 @@ export function LearnScreen({
     );
   }
 
-  if (!limit?.can_learn_more) {
+  if (!limit?.can_learn_more && !isReview && !word) {
     return (
       <section className="limit-panel">
         <div className="panel-icon">
@@ -122,12 +124,12 @@ export function LearnScreen({
     );
   }
 
-  if (!word) {
+  if (!word || !limit) {
     return (
       <section className="empty-panel">
         <Check size={28} />
-        <h2>Hammasi o'rganildi!</h2>
-        <p>Barcha mavjud so'zlarni o'rgandingiz. Yangi so'zlar tez orada qo'shiladi.</p>
+        <h2>Hali so'z qo'shilmagan</h2>
+        <p>Admin yangi so'zlarni qo'shganidan keyin shu yerda paydo bo'ladi.</p>
       </section>
     );
   }
@@ -140,9 +142,11 @@ export function LearnScreen({
     <section className="learn-layout">
       <div className="daily-strip">
         <span>
-          {state.tier === "paid"
-            ? "Bugun cheksiz so'z"
-            : `${limit.daily_remaining} ta bepul so'z qoldi`}
+          {isReview
+            ? "Takror mashqi · cheksiz"
+            : state.tier === "paid"
+              ? "Bugun cheksiz so'z"
+              : `${limit.daily_remaining} ta bepul so'z qoldi`}
         </span>
         <strong>{learnedTotal} ta o'rganildi</strong>
       </div>
@@ -156,7 +160,7 @@ export function LearnScreen({
       >
         <div className="flashcard-side flashcard-front">
           <div className="flashcard-meta">
-            <span>Karta · {word.level}</span>
+            <span>{isReview ? "Takror" : "Karta"} · {word.level}</span>
             <span>{word.word_type}</span>
           </div>
           <div className="flashcard-word-block">
@@ -210,16 +214,25 @@ export function LearnScreen({
         <button aria-label="Tinglash" className="icon-button" type="button" onClick={speak}>
           <Headphones size={20} />
         </button>
-        <button className="secondary-button" type="button" onClick={() => recordEvent("practice_later")}>
-          Keyinroq
-        </button>
-        <button
-          className="primary-button"
-          type="button"
-          onClick={() => recordEvent("learned")}
-        >
-          <Check size={16} /> O'rgandim
-        </button>
+        {isReview ? (
+          <>
+            <button className="secondary-button" type="button" onClick={() => recordEvent("forgot")}>
+              <X size={16} /> Eslolmadim
+            </button>
+            <button className="primary-button" type="button" onClick={() => recordEvent("remembered")}>
+              <Check size={16} /> Bilaman
+            </button>
+          </>
+        ) : (
+          <>
+            <button className="secondary-button" type="button" onClick={() => recordEvent("practice_later")}>
+              Keyinroq
+            </button>
+            <button className="primary-button" type="button" onClick={() => recordEvent("learned")}>
+              <Check size={16} /> O'rgandim
+            </button>
+          </>
+        )}
       </div>
     </section>
   );

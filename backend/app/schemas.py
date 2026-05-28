@@ -55,6 +55,7 @@ class WordPayload(BaseModel):
 
 class TodayWordResponse(BaseModel):
     item: WordPayload | None
+    is_review: bool = False
     limit: LimitPayload
 
 

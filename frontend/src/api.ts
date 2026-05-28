@@ -40,8 +40,11 @@ export type ApiWord = {
 
 export type TodayWordResponse = {
   item: ApiWord | null;
+  is_review: boolean;
   limit: ApiLimit;
 };
+
+export type WordEvent = "seen" | "listened" | "flipped" | "learned" | "practice_later" | "remembered" | "forgot";
 
 export type WordEventResponse = {
   ok: boolean;
@@ -181,7 +184,7 @@ export async function fetchTodayWord(): Promise<TodayWordResponse> {
   return apiFetch<TodayWordResponse>("/api/mini/words/today");
 }
 
-export async function sendWordEvent(wordId: number, event: string): Promise<WordEventResponse> {
+export async function sendWordEvent(wordId: number, event: WordEvent): Promise<WordEventResponse> {
   return apiFetch<WordEventResponse>(`/api/mini/words/${wordId}/events`, {
     method: "POST",
     body: JSON.stringify({ event }),

@@ -38,10 +38,15 @@ def word_payload(word: WordItem) -> dict:
 @router.get("/today", response_model=TodayWordResponse)
 def today_word(user: LearnerUser = Depends(current_user), db: Session = Depends(get_db)) -> dict:
     limit = limit_payload(db, user)
-    if not limit["can_learn_more"]:
-        return {"item": None, "limit": limit}
-    word = next_word_for_user(db, user)
-    return {"item": word_payload(word) if word else None, "limit": limit}
+    word, is_review = next_word_for_user(db, user)
+    # Daily-limit cap only blocks NEW words; review practice is unlimited.
+    if not limit["can_learn_more"] and not is_review:
+        return {"item": None, "is_review": False, "limit": limit}
+    return {
+        "item": word_payload(word) if word else None,
+        "is_review": is_review,
+        "limit": limit,
+    }
 
 
 @router.post("/{word_id}/events", response_model=WordEventResponse)

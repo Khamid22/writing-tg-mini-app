@@ -25,21 +25,43 @@ def get_or_create_progress(db: Session, user: LearnerUser, word: WordItem) -> Le
     return progress
 
 
-def next_word_for_user(db: Session, user: LearnerUser) -> WordItem | None:
+LEARNED_STATUSES = (ProgressStatus.LEARNED.value, ProgressStatus.MASTERED.value)
+REVIEW_EVENTS = {"remembered", "forgot"}
+KNOWN_EVENTS = {"seen", "listened", "flipped", "learned", "practice_later"} | REVIEW_EVENTS
+
+
+def next_word_for_user(db: Session, user: LearnerUser) -> tuple[WordItem | None, bool]:
+    """Return (word, is_review). New unlearned words come first; once exhausted, fall back
+    to the learned word that hasn't been reviewed for the longest (with weakest mastery as tiebreaker)."""
     learned_ids = select(LearnerProgress.word_item_id).where(
         LearnerProgress.user_id == user.id,
-        LearnerProgress.status.in_([ProgressStatus.LEARNED.value, ProgressStatus.MASTERED.value]),
+        LearnerProgress.status.in_(LEARNED_STATUSES),
     )
-    return db.scalar(
+    new_word = db.scalar(
         select(WordItem)
         .where(WordItem.is_active.is_(True), WordItem.id.not_in(learned_ids))
         .order_by(WordItem.id.asc())
         .limit(1)
     )
+    if new_word:
+        return new_word, False
+
+    review_word = db.scalar(
+        select(WordItem)
+        .join(LearnerProgress, LearnerProgress.word_item_id == WordItem.id)
+        .where(
+            WordItem.is_active.is_(True),
+            LearnerProgress.user_id == user.id,
+            LearnerProgress.status.in_(LEARNED_STATUSES),
+        )
+        .order_by(LearnerProgress.last_reviewed_at.asc().nulls_first(), LearnerProgress.mastery_score.asc())
+        .limit(1)
+    )
+    return review_word, review_word is not None
 
 
 def apply_word_event(db: Session, user: LearnerUser, word: WordItem, event: str) -> LearnerProgress:
-    if event not in {"seen", "listened", "flipped", "learned", "practice_later"}:
+    if event not in KNOWN_EVENTS:
         raise HTTPException(status_code=400, detail="Unknown word event")
 
     now = datetime.now(timezone.utc)
@@ -62,7 +84,7 @@ def apply_word_event(db: Session, user: LearnerUser, word: WordItem, event: str)
         progress.status = ProgressStatus.LEARNING.value
         progress.mastery_score = max(progress.mastery_score, 10)
     elif event == "learned":
-        was_learned = progress.status in {ProgressStatus.LEARNED.value, ProgressStatus.MASTERED.value}
+        was_learned = progress.status in LEARNED_STATUSES
         usage = get_or_create_usage(db, user)
         settings = get_settings()
         if user.tier != LearnerTier.PAID.value and not was_learned and usage.new_words_learned >= settings.free_daily_word_limit:
@@ -78,6 +100,14 @@ def apply_word_event(db: Session, user: LearnerUser, word: WordItem, event: str)
                 user.streak_days += 1
                 user.last_learning_date = today
             db.add(PointsEvent(user_id=user.id, event_type="word_learned", points=20))
+    elif event == "remembered":
+        progress.last_reviewed_at = now
+        progress.mastery_score = min(100, progress.mastery_score + 5)
+    elif event == "forgot":
+        progress.last_reviewed_at = now
+        progress.mastery_score = max(0, progress.mastery_score - 10)
+        if progress.mastery_score < 25 and progress.status in LEARNED_STATUSES:
+            progress.status = ProgressStatus.LEARNING.value
 
     db.commit()
     db.refresh(progress)
