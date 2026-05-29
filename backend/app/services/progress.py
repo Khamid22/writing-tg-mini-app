@@ -93,8 +93,11 @@ def apply_word_event(db: Session, user: LearnerUser, word: WordItem, event: str)
         if progress.status == ProgressStatus.NEW.value:
             progress.status = ProgressStatus.SEEN.value
     elif event == "practice_later":
-        progress.status = ProgressStatus.LEARNING.value
-        progress.mastery_score = max(progress.mastery_score, 10)
+        # "Keyinroq" defers the card without progressing it. Never demote a learned
+        # word, never bump mastery — we're not committing to learning yet.
+        if progress.status not in LEARNED_STATUSES and progress.status != ProgressStatus.LEARNING.value:
+            progress.status = ProgressStatus.LEARNING.value
+        progress.last_reviewed_at = now
     elif event == "learned":
         was_learned = progress.status in LEARNED_STATUSES
         usage = get_or_create_usage(db, user)

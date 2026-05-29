@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from urllib.parse import quote
+
+import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -11,6 +14,9 @@ from app.services.limits import limit_payload
 from app.services.progress import apply_word_event, next_word_for_user
 
 router = APIRouter(prefix="/api/mini/words", tags=["words"])
+
+_DICTIONARY_API = "https://api.dictionaryapi.dev/api/v2/entries/en/"
+_AUDIO_LOOKUP_TIMEOUT = 5.0
 
 
 def word_payload(word: WordItem) -> dict:
@@ -31,7 +37,7 @@ def word_payload(word: WordItem) -> dict:
         "common_mistake": word.common_mistake,
         "writing_prompt": word.writing_prompt,
         "difficulty_order": word.difficulty_order,
-        "audio_url": word.audio_url or f"/api/mini/words/{word.id}/audio",
+        "audio_url": word.audio_url,  # null until resolved via /audio endpoint
     }
 
 
@@ -71,9 +77,31 @@ def word_event(
     }
 
 
+async def _resolve_audio_url(word_text: str) -> str | None:
+    """Look up a real human pronunciation from dictionaryapi.dev. Returns None on failure."""
+    try:
+        async with httpx.AsyncClient(timeout=_AUDIO_LOOKUP_TIMEOUT) as client:
+            response = await client.get(f"{_DICTIONARY_API}{quote(word_text)}")
+            if response.status_code != 200:
+                return None
+            for entry in response.json():
+                for phonetic in entry.get("phonetics", []):
+                    if audio := (phonetic.get("audio") or "").strip():
+                        return audio
+    except (httpx.HTTPError, ValueError):
+        return None
+    return None
+
+
 @router.get("/{word_id}/audio")
-def word_audio(word_id: int, db: Session = Depends(get_db)) -> dict:
+async def word_audio(word_id: int, db: Session = Depends(get_db)) -> dict:
     word = db.get(WordItem, word_id)
     if not word:
         raise HTTPException(status_code=404, detail="Word not found")
-    return {"word": word.word, "audio_url": word.audio_url, "fallback": "Use browser speech synthesis if audio_url is empty."}
+    if word.audio_url:
+        return {"word": word.word, "audio_url": word.audio_url}
+    resolved = await _resolve_audio_url(word.word)
+    if resolved:
+        word.audio_url = resolved
+        db.commit()
+    return {"word": word.word, "audio_url": resolved}

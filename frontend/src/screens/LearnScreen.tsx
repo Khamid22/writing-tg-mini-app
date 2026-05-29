@@ -3,6 +3,7 @@ import type { JSX } from "react";
 import { Check, Flame, Headphones, RotateCcw, X } from "lucide-react";
 import type { ApiLimit, ApiWord, WordEvent } from "../api";
 import { fetchTodayWord, sendWordEvent } from "../api";
+import { pronounceWord } from "../audio";
 import { getTodayKey } from "../storage";
 import type { LearnerState } from "../types";
 
@@ -88,12 +89,7 @@ export function LearnScreen({
   function speak(): void {
     if (!word) return;
     recordEvent("listened");
-    if (!("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(word.word);
-    utterance.lang = "en-GB";
-    utterance.rate = 0.82;
-    window.speechSynthesis.speak(utterance);
+    void pronounceWord({ id: word.id, word: word.word, audioUrl: word.audio_url });
   }
 
   function flip(): void {

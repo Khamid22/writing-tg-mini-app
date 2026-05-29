@@ -198,6 +198,10 @@ export async function fetchTodayWord(collection?: string | null): Promise<TodayW
   return apiFetch<TodayWordResponse>(`/api/mini/words/today${query}`);
 }
 
+export async function fetchWordAudio(wordId: number): Promise<{ word: string; audio_url: string | null }> {
+  return apiFetch<{ word: string; audio_url: string | null }>(`/api/mini/words/${wordId}/audio`);
+}
+
 export async function fetchCollections(): Promise<CollectionsResponse> {
   return apiFetch<CollectionsResponse>("/api/mini/collections");
 }

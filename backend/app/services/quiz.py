@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import random
+import re
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
@@ -64,18 +65,15 @@ def start_quiz(
 
     answers: list[QuizAnswer] = []
     for word in selected_words:
-        distractors = [item.uzbek_definition for item in all_words if item.id != word.id]
-        random.shuffle(distractors)
-        choices = [word.uzbek_definition, *distractors[:3]]
-        random.shuffle(choices)
+        question_type, prompt, correct, choices = _build_question(word, all_words)
         answer = QuizAnswer(
             attempt_id=attempt.id,
             word_item_id=word.id,
             question_id=f"{attempt.id}-{word.id}",
-            question_type="uzbek_meaning",
-            prompt=f'What does "{word.word}" mean?',
+            question_type=question_type,
+            prompt=prompt,
             choices_json=json.dumps(choices, ensure_ascii=False),
-            correct_choice=word.uzbek_definition,
+            correct_choice=correct,
         )
         db.add(answer)
         answers.append(answer)
@@ -83,6 +81,81 @@ def start_quiz(
     db.commit()
     db.refresh(attempt)
     return attempt, answers
+
+
+QUESTION_TYPES = ("uzbek_meaning", "english_word", "example_cloze")
+
+
+def _pick_distractors(pool: list[str], correct: str, n: int = 3) -> list[str]:
+    """Pick N distinct distractors that aren't the correct answer."""
+    seen = {correct}
+    out: list[str] = []
+    for candidate in pool:
+        if candidate and candidate not in seen:
+            out.append(candidate)
+            seen.add(candidate)
+            if len(out) == n:
+                break
+    return out
+
+
+def _build_question(word: WordItem, all_words: list[WordItem]) -> tuple[str, str, str, list[str]]:
+    """Return (question_type, prompt, correct_choice, choices).
+
+    Three types rotate to keep tests challenging:
+      - uzbek_meaning: word shown, pick the Uzbek meaning.
+      - english_word: Uzbek meaning shown, pick the English word.
+      - example_cloze: example with the word blanked out, pick the word.
+    """
+    available = list(QUESTION_TYPES)
+    if not (word.english_example or "").strip():
+        available = [t for t in available if t != "example_cloze"]
+    qtype = random.choice(available)
+
+    if qtype == "uzbek_meaning":
+        pool = [w.uzbek_definition for w in all_words if w.id != word.id and w.uzbek_definition]
+        random.shuffle(pool)
+        distractors = _pick_distractors(pool, word.uzbek_definition)
+        correct = word.uzbek_definition
+        prompt = f'"{word.word}" — bu nima degani?'
+    elif qtype == "english_word":
+        pool = [w.word for w in all_words if w.id != word.id and w.word]
+        random.shuffle(pool)
+        distractors = _pick_distractors(pool, word.word)
+        correct = word.word
+        prompt = f"Qaysi so'z bu ma'noga to'g'ri keladi: «{word.uzbek_definition}»?"
+    else:  # example_cloze
+        cloze = _blank_out_word(word.english_example, word.word)
+        pool = [w.word for w in all_words if w.id != word.id and w.word]
+        random.shuffle(pool)
+        distractors = _pick_distractors(pool, word.word)
+        correct = word.word
+        prompt = f"Bo'sh joyni to'ldiring: {cloze}"
+
+    choices = [correct, *distractors]
+    random.shuffle(choices)
+    return qtype, prompt, correct, choices
+
+
+def _blank_out_word(sentence: str, word: str) -> str:
+    """Replace the target word in a sentence with _____ as a whole word match.
+    Tries common English inflections so the cloze never leaves dangling letters."""
+    if not sentence or not word:
+        return sentence
+    base = word.lower()
+    if base.endswith("e"):
+        candidates = [word, word + "d", word + "s", word[:-1] + "ing"]
+    elif base.endswith("y") and len(base) > 1 and base[-2] not in "aeiou":
+        candidates = [word, word[:-1] + "ies", word[:-1] + "ied", word + "ing"]
+    else:
+        candidates = [word, word + "s", word + "es", word + "ed", word + "ing"]
+
+    for candidate in candidates:
+        pattern = rf"\b{re.escape(candidate)}\b"
+        new_sentence, count = re.subn(pattern, "_____", sentence, count=1, flags=re.IGNORECASE)
+        if count:
+            return new_sentence
+    return sentence
 
 
 def answer_question(db: Session, user: LearnerUser, attempt_id: int, question_id: str, selected_choice: str) -> tuple[bool, str, int]:
