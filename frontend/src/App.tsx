@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { JSX } from "react";
-import { BarChart3, BookMarked, BookOpen, Crown, GraduationCap, Medal, User } from "lucide-react";
+import { BarChart3, BookMarked, BookOpen, Crown, GraduationCap, Medal, Menu, User, X } from "lucide-react";
 import { applyApiUser, authenticateTelegram, clearStoredToken, getStoredToken } from "./api";
 import { DAILY_FREE_LIMIT } from "./data";
 import { clearState, dailyUsed, loadState, saveState } from "./storage";
@@ -35,6 +35,15 @@ export function App(): JSX.Element {
   const [state, setState] = useState<LearnerState>(() => loadState());
   const [apiToken, setApiToken] = useState<string | null>(() => getStoredToken());
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Close drawer on Escape; reset on tab change
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setDrawerOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [drawerOpen]);
 
   useEffect(() => {
     saveState(state);
@@ -81,12 +90,23 @@ export function App(): JSX.Element {
     );
   }
 
+  const currentLabel = navItems.find((n) => n.tab === activeTab)?.label ?? "Yangi so'zlar";
+
   return (
-    <div className="app-shell">
+    <div className="app-shell" data-drawer-open={drawerOpen}>
       <header className="topbar">
-        <div>
+        <button
+          type="button"
+          className="topbar-menu"
+          aria-label="Menyu"
+          aria-expanded={drawerOpen}
+          onClick={() => setDrawerOpen(true)}
+        >
+          <Menu size={20} />
+        </button>
+        <div className="topbar-titles">
           <p className="eyebrow">Kundalik ingliz tili</p>
-          <h1>Yangi so'zlar</h1>
+          <h1>{currentLabel}</h1>
         </div>
         <div className="tier-pill" data-tier={state.tier}>
           {state.tier === "paid" ? <Crown size={15} /> : <BookOpen size={15} />}
@@ -137,10 +157,22 @@ export function App(): JSX.Element {
         <PublicProfile userId={selectedUserId} onClose={() => setSelectedUserId(null)} />
       ) : null}
 
-      <nav aria-label="Main navigation" className="bottom-nav">
-        <div className="app-nav-brand" aria-hidden="true">
+      {drawerOpen ? (
+        <div className="app-nav-backdrop" role="presentation" onClick={() => setDrawerOpen(false)} />
+      ) : null}
+
+      <nav aria-label="Main navigation" className="app-nav" data-open={drawerOpen}>
+        <div className="app-nav-brand">
           <span className="app-nav-logo">VH</span>
           <span className="app-nav-title">VocabHelper</span>
+          <button
+            type="button"
+            className="app-nav-close"
+            aria-label="Yopish"
+            onClick={() => setDrawerOpen(false)}
+          >
+            <X size={18} />
+          </button>
         </div>
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -149,7 +181,7 @@ export function App(): JSX.Element {
               className="nav-button"
               data-active={item.tab === activeTab}
               key={item.tab}
-              onClick={() => setActiveTab(item.tab)}
+              onClick={() => { setActiveTab(item.tab); setDrawerOpen(false); }}
               type="button"
             >
               <Icon size={19} />

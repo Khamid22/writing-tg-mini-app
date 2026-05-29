@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { JSX } from "react";
-import { BookOpen, CreditCard, LayoutDashboard, ListFilter, LogOut, Plus, Settings, Users } from "lucide-react";
+import { BookOpen, CreditCard, LayoutDashboard, ListFilter, LogOut, Menu, Plus, Settings, Users, X } from "lucide-react";
 import type { AdminSummary, AdminWord } from "./adminApi";
 import {
   approveAdminPayment,
@@ -45,6 +45,14 @@ export function AdminApp(): JSX.Element {
   const [detailUserId, setDetailUserId] = useState<number | null>(null);
   const [wordsReloadKey, setWordsReloadKey] = useState(0);
   const [paymentsReloadKey, setPaymentsReloadKey] = useState(0);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setDrawerOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [drawerOpen]);
 
   useEffect(() => {
     if (!token) return;
@@ -102,15 +110,32 @@ export function AdminApp(): JSX.Element {
   if (!token) return <AdminLogin onSuccess={login} />;
 
   return (
-    <div className="admin-shell">
-      <aside className="admin-sidebar">
+    <div className="admin-shell" data-drawer-open={drawerOpen}>
+      {drawerOpen ? (
+        <div className="admin-nav-backdrop" role="presentation" onClick={() => setDrawerOpen(false)} />
+      ) : null}
+
+      <aside className="admin-sidebar" data-open={drawerOpen}>
         <div className="admin-brand">
           <span className="admin-logo">VH</span>
           <span>VocabHelper Admin</span>
+          <button
+            type="button"
+            className="admin-nav-close"
+            aria-label="Close menu"
+            onClick={() => setDrawerOpen(false)}
+          >
+            <X size={18} />
+          </button>
         </div>
         <nav className="admin-nav" aria-label="Admin navigation">
           {NAV.map(({ tab: t, label, icon: Icon }) => (
-            <button key={t} type="button" data-active={tab === t} onClick={() => setTab(t)}>
+            <button
+              key={t}
+              type="button"
+              data-active={tab === t}
+              onClick={() => { setTab(t); setDrawerOpen(false); }}
+            >
               <Icon size={17} />
               <span>{label}</span>
             </button>
@@ -123,7 +148,16 @@ export function AdminApp(): JSX.Element {
 
       <main className="admin-main">
         <header className="admin-topbar">
-          <div>
+          <button
+            type="button"
+            className="admin-topbar-menu"
+            aria-label="Open menu"
+            aria-expanded={drawerOpen}
+            onClick={() => setDrawerOpen(true)}
+          >
+            <Menu size={20} />
+          </button>
+          <div className="admin-topbar-titles">
             <p>{tab === "words" ? "Content library" : "Admin workspace"}</p>
             <h1>{NAV.find((n) => n.tab === tab)?.label}</h1>
           </div>
