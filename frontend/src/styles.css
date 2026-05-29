@@ -3128,8 +3128,64 @@ h2 {
 
 .admin-metrics {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
+}
+
+.admin-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-insight-panel {
+  min-height: 210px;
+}
+
+.admin-insight-list,
+.admin-action-list,
+.admin-topic-list {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-insight-list div,
+.admin-action-list div,
+.admin-topic-list div,
+.admin-mini-static {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-bottom: 1px solid var(--admin-rule-2);
+  padding: 8px 0;
+}
+
+.admin-insight-list div {
+  align-items: flex-start;
+}
+
+.admin-insight-list strong {
+  min-width: 68px;
+  color: var(--admin-accent);
+  font-size: 26px;
+  font-weight: normal;
+}
+
+.admin-insight-list span,
+.admin-mini-static span {
+  color: var(--admin-muted);
+  line-height: 1.3;
+}
+
+.admin-action-list strong,
+.admin-topic-list strong {
+  color: var(--admin-ink);
+  font-weight: normal;
+}
+
+.admin-recent-panel {
+  min-height: 0;
 }
 
 .admin-panel,
@@ -3846,6 +3902,7 @@ h2 {
 /* ── Responsive overrides for new sections ── */
 @media (max-width: 900px) {
   .admin-analytics-grid { grid-template-columns: 1fr; }
+  .admin-dashboard-grid { grid-template-columns: 1fr; }
   .admin-users-head, .admin-users-row { grid-template-columns: 1fr; }
   .admin-payments-head, .admin-payments-row { grid-template-columns: 1fr; }
   .admin-settings-row { flex-direction: column; align-items: flex-start; }

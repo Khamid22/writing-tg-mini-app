@@ -36,22 +36,26 @@ export function UsersTab({
       <div className="admin-analytics-grid">
         <section className="admin-panel admin-chart-panel">
           <div className="admin-chart-head">
-            <h3>New signups</h3>
-            <span className="admin-chart-sub">Last 30 days</span>
+            <div>
+              <h3>Registration Trend</h3>
+              <span className="admin-chart-sub">Are new people entering the app?</span>
+            </div>
           </div>
           <BarChart data={signups} />
           <div className="admin-chart-footer">
-            <span>{signups.reduce((sum, d) => sum + d.count, 0)} total</span>
+            <span>{signups.reduce((sum, d) => sum + d.count, 0)} new users in 30 days. If this rises but learning stays flat, onboarding needs work.</span>
           </div>
         </section>
         <section className="admin-panel admin-chart-panel">
           <div className="admin-chart-head">
-            <h3>Daily active users</h3>
-            <span className="admin-chart-sub">Last 30 days</span>
+            <div>
+              <h3>Daily Learning Activity</h3>
+              <span className="admin-chart-sub">Are users coming back to learn?</span>
+            </div>
           </div>
           <BarChart data={dau} color="var(--admin-green)" />
           <div className="admin-chart-footer">
-            <span>peak: {Math.max(...dau.map((d) => d.count), 0)}</span>
+            <span>Peak {Math.max(...dau.map((d) => d.count), 0)} active learners. This is the retention signal, not just a traffic number.</span>
           </div>
         </section>
       </div>

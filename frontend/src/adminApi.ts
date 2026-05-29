@@ -48,7 +48,18 @@ export type AdminSummary = {
     total_users: number;
     premium_users: number;
     pending_payments: number;
+    active_today: number;
+    new_users_today: number;
+    words_learned_today: number;
+    tests_completed_today: number;
+    limit_hits_today: number;
+    review_users_today: number;
+    quiz_accuracy: number;
+    missing_audio: number;
+    missing_writing_prompt: number;
   };
+  topic_coverage: Array<{ topic: string; count: number }>;
+  weak_words: Array<{ word: string; level: string; answered: number; accuracy: number }>;
   recent_words: AdminWord[];
 };
 

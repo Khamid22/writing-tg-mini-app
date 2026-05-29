@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, time, timezone
 from typing import Literal
 
 import httpx
@@ -8,8 +9,9 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.db.session import get_db
-from app.models import LearnerUser, PaymentRequest, PaymentStatus, WordItem
+from app.models import LearnerDailyUsage, LearnerProgress, LearnerUser, PaymentRequest, PaymentStatus, QuizAttempt, WordItem
 from app.routes.admin.auth import require_admin
 from app.routes.admin.serializers import serialize_word
 from app.services.word_import import import_rows, parse_csv, parse_xlsx
@@ -64,6 +66,10 @@ class ImportUrlRequest(BaseModel):
 
 @router.get("/summary")
 def summary(db: Session = Depends(get_db)) -> dict:
+    settings = get_settings()
+    today = datetime.now(timezone.utc).date()
+    today_start = datetime.combine(today, time.min, tzinfo=timezone.utc)
+
     total = db.scalar(select(func.count(WordItem.id))) or 0
     published = db.scalar(select(func.count(WordItem.id)).where(WordItem.is_active.is_(True))) or 0
     total_users = db.scalar(select(func.count(LearnerUser.id))) or 0
@@ -73,6 +79,61 @@ def summary(db: Session = Depends(get_db)) -> dict:
             PaymentRequest.status.in_([PaymentStatus.PENDING.value, PaymentStatus.SUBMITTED.value])
         )
     ) or 0
+
+    active_today = db.scalar(
+        select(func.count(LearnerDailyUsage.user_id.distinct())).where(LearnerDailyUsage.usage_date == today)
+    ) or 0
+    new_users_today = db.scalar(select(func.count(LearnerUser.id)).where(LearnerUser.created_at >= today_start)) or 0
+    words_learned_today = db.scalar(
+        select(func.coalesce(func.sum(LearnerDailyUsage.new_words_learned), 0)).where(LearnerDailyUsage.usage_date == today)
+    ) or 0
+    tests_today = db.scalar(
+        select(func.count(QuizAttempt.id)).where(QuizAttempt.completed_at >= today_start)
+    ) or 0
+    limit_hits_today = db.scalar(
+        select(func.count(LearnerDailyUsage.user_id.distinct())).where(
+            LearnerDailyUsage.usage_date == today,
+            LearnerDailyUsage.new_words_learned >= settings.free_daily_word_limit,
+        )
+    ) or 0
+    review_users_today = db.scalar(
+        select(func.count(LearnerProgress.user_id.distinct())).where(LearnerProgress.last_reviewed_at >= today_start)
+    ) or 0
+    answered, correct = db.execute(
+        select(
+            func.coalesce(func.sum(LearnerProgress.times_answered), 0),
+            func.coalesce(func.sum(LearnerProgress.times_correct), 0),
+        )
+    ).one()
+    quiz_accuracy = round((correct / answered) * 100) if answered else 0
+
+    missing_audio = db.scalar(
+        select(func.count(WordItem.id)).where(WordItem.is_active.is_(True), or_(WordItem.audio_url.is_(None), WordItem.audio_url == ""))
+    ) or 0
+    missing_writing_prompt = db.scalar(
+        select(func.count(WordItem.id)).where(WordItem.is_active.is_(True), WordItem.writing_prompt == "")
+    ) or 0
+
+    topic_rows = db.execute(
+        select(WordItem.topic, func.count(WordItem.id))
+        .where(WordItem.is_active.is_(True))
+        .group_by(WordItem.topic)
+        .order_by(func.count(WordItem.id).desc(), WordItem.topic.asc())
+        .limit(5)
+    ).all()
+    weak_rows = db.execute(
+        select(
+            WordItem.word,
+            WordItem.level,
+            func.coalesce(func.sum(LearnerProgress.times_answered), 0).label("answered"),
+            func.coalesce(func.sum(LearnerProgress.times_correct), 0).label("correct"),
+        )
+        .join(LearnerProgress, LearnerProgress.word_item_id == WordItem.id)
+        .where(LearnerProgress.times_answered > 0)
+        .group_by(WordItem.id, WordItem.word, WordItem.level)
+        .order_by((func.sum(LearnerProgress.times_correct) * 1.0 / func.sum(LearnerProgress.times_answered)).asc())
+        .limit(5)
+    ).all()
     recent = list(db.scalars(select(WordItem).order_by(WordItem.created_at.desc()).limit(5)))
     return {
         "stats": {
@@ -82,7 +143,26 @@ def summary(db: Session = Depends(get_db)) -> dict:
             "total_users": total_users,
             "premium_users": premium,
             "pending_payments": pending,
+            "active_today": active_today,
+            "new_users_today": new_users_today,
+            "words_learned_today": int(words_learned_today),
+            "tests_completed_today": tests_today,
+            "limit_hits_today": limit_hits_today,
+            "review_users_today": review_users_today,
+            "quiz_accuracy": quiz_accuracy,
+            "missing_audio": missing_audio,
+            "missing_writing_prompt": missing_writing_prompt,
         },
+        "topic_coverage": [{"topic": topic or "Untitled", "count": int(count)} for topic, count in topic_rows],
+        "weak_words": [
+            {
+                "word": word,
+                "level": level,
+                "answered": int(answered),
+                "accuracy": round((correct / answered) * 100) if answered else 0,
+            }
+            for word, level, answered, correct in weak_rows
+        ],
         "recent_words": [serialize_word(w) for w in recent],
     }
 
