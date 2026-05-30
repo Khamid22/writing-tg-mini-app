@@ -78,13 +78,17 @@ export function LearnScreen({
           ...current,
           progress: {
             ...current.progress,
-            [word.id]: {
-              ...(current.progress[word.id] ?? {
-                status: "new", mastery: 0, seen: 0, listened: 0, flipped: 0, answered: 0, correct: 0,
-              }),
-              status: progress.status as LearnerState["progress"][number]["status"],
-              mastery: progress.mastery_score,
-            },
+            ...(isReview && !current.progress[word.id]
+              ? {}
+              : {
+                  [word.id]: {
+                    ...(current.progress[word.id] ?? {
+                      status: "new", mastery: 0, seen: 0, listened: 0, flipped: 0, answered: 0, correct: 0,
+                    }),
+                    status: progress.status as LearnerState["progress"][number]["status"],
+                    mastery: progress.mastery_score,
+                  },
+                }),
           },
         }));
         if (eventName === "learned" || eventName === "practice_later" || eventName === "remembered" || eventName === "forgot") {
