@@ -167,6 +167,14 @@ h2 {
   cursor: pointer;
 }
 
+.flashcard-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
 .flashcard-side {
   position: absolute;
   inset: 0;
@@ -193,6 +201,7 @@ h2 {
   text-align: center;
   z-index: 2;
   visibility: visible;
+  transform: rotateY(0deg);
 }
 
 .flashcard-front h2 {
@@ -211,22 +220,15 @@ h2 {
 .flashcard-back {
   gap: 18px;
   transform: rotateY(180deg);
-  z-index: 1;
-  visibility: hidden;
+  z-index: 2;
   pointer-events: none;
 }
 
 .flashcard[data-flipped="true"] .flashcard-front {
-  transform: rotateY(180deg);
-  z-index: 1;
-  visibility: hidden;
   pointer-events: none;
 }
 
 .flashcard[data-flipped="true"] .flashcard-back {
-  transform: rotateY(0deg);
-  z-index: 2;
-  visibility: visible;
   pointer-events: auto;
 }
 

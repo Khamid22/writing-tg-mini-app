@@ -23,6 +23,7 @@ export function LearnScreen({
   const [isReview, setIsReview] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [flipped, setFlipped] = useState(false);
+  const [flipTurn, setFlipTurn] = useState(0);
   const fetching = useRef(false);
   const reduce = useReducedMotion();
 
@@ -48,6 +49,7 @@ export function LearnScreen({
         syncLimitToState(newLimit);
         if (initial) setInitialLoading(false);
         setFlipped(false);
+        setFlipTurn(0);
       })
       .catch(() => {
         setWord(null);
@@ -110,6 +112,7 @@ export function LearnScreen({
   function flip(): void {
     if (!word) return;
     setFlipped((v) => !v);
+    setFlipTurn((turn) => turn + 1);
     if (!flipped) recordEvent("flipped");
   }
 
@@ -183,56 +186,62 @@ export function LearnScreen({
         transition={reduce ? { duration: 0 } : spring}
         whileTap={tapScale()}
       >
-        <div className="flashcard-side flashcard-front">
-          <div className="flashcard-meta">
-            <span>{isReview ? "Takror" : "Karta"} · {word.level}</span>
-            <span>{word.word_type}</span>
+        <motion.div
+          className="flashcard-inner"
+          animate={{ rotateY: reduce ? 0 : flipTurn * 540 }}
+          transition={reduce ? { duration: 0 } : { duration: 0.64, ease: [0.32, 0.72, 0, 1] }}
+        >
+          <div className="flashcard-side flashcard-front">
+            <div className="flashcard-meta">
+              <span>{isReview ? "Takror" : "Karta"} · {word.level}</span>
+              <span>{word.word_type}</span>
+            </div>
+            <div className="flashcard-word-block">
+              <h2>{word.word}</h2>
+              <p className="phonetic">{word.phonetic} · {word.word_type}</p>
+            </div>
+            <div className="flashcard-hint">
+              <em>Ma'noni ko'rish uchun bosing.</em>
+              <button
+                aria-label="Talaffuz"
+                className="flashcard-speaker"
+                type="button"
+                onClick={(e) => { e.stopPropagation(); speak(); }}
+              >
+                ♪
+              </button>
+            </div>
           </div>
-          <div className="flashcard-word-block">
-            <h2>{word.word}</h2>
-            <p className="phonetic">{word.phonetic} · {word.word_type}</p>
+          <div className="flashcard-side flashcard-back">
+            <div className="flashcard-meta">
+              <span>Ma'no</span>
+              <span>{word.level}</span>
+            </div>
+            <div className="flashcard-defs">
+              <dl>
+                <dt>Inglizcha</dt>
+                <dd>{word.english_definition}</dd>
+                <dt>O'zbekcha</dt>
+                <dd>{word.uzbek_definition}</dd>
+                <dt>Misol</dt>
+                <dd><em>{word.english_example}</em></dd>
+                <dt>Tarjima</dt>
+                <dd>{word.uzbek_example}</dd>
+              </dl>
+            </div>
+            <div className="flashcard-hint">
+              <em>Orqaga qaytarish uchun yana bosing.</em>
+              <button
+                aria-label="Talaffuz"
+                className="flashcard-speaker"
+                type="button"
+                onClick={(e) => { e.stopPropagation(); speak(); }}
+              >
+                ♪
+              </button>
+            </div>
           </div>
-          <div className="flashcard-hint">
-            <em>Ma'noni ko'rish uchun bosing.</em>
-            <button
-              aria-label="Talaffuz"
-              className="flashcard-speaker"
-              type="button"
-              onClick={(e) => { e.stopPropagation(); speak(); }}
-            >
-              ♪
-            </button>
-          </div>
-        </div>
-        <div className="flashcard-side flashcard-back">
-          <div className="flashcard-meta">
-            <span>Ma'no</span>
-            <span>{word.level}</span>
-          </div>
-          <div className="flashcard-defs">
-            <dl>
-              <dt>Inglizcha</dt>
-              <dd>{word.english_definition}</dd>
-              <dt>O'zbekcha</dt>
-              <dd>{word.uzbek_definition}</dd>
-              <dt>Misol</dt>
-              <dd><em>{word.english_example}</em></dd>
-              <dt>Tarjima</dt>
-              <dd>{word.uzbek_example}</dd>
-            </dl>
-          </div>
-          <div className="flashcard-hint">
-            <em>Orqaga qaytarish uchun yana bosing.</em>
-            <button
-              aria-label="Talaffuz"
-              className="flashcard-speaker"
-              type="button"
-              onClick={(e) => { e.stopPropagation(); speak(); }}
-            >
-              ♪
-            </button>
-          </div>
-        </div>
+        </motion.div>
       </motion.button>
 
       <div className="action-row">
