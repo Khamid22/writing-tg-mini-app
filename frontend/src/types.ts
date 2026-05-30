@@ -18,6 +18,7 @@ export type Word = {
 export type WordProgress = {
   status: "new" | "seen" | "learning" | "learned" | "mastered";
   mastery: number;
+  isBookmarked: boolean;
   seen: number;
   listened: number;
   flipped: number;
@@ -37,7 +38,16 @@ export type LearnerState = {
   streak: number;
   lastLearningDate?: string;
   activeCollection?: string | null;
+  selectedLevel: string;
+  preferredTopic?: string | null;
   uzbekScript: UzbekScriptPreference;
+  levelProgress: Array<{
+    level: string;
+    total: number;
+    learned: number;
+    unlock_at: number;
+    is_unlocked: boolean;
+  }>;
   progress: Record<number, WordProgress>;
   dailyUsage: Record<string, number>;
   quizHistory: Array<{

@@ -37,6 +37,13 @@ def ensure_schema_compatibility() -> None:
                 connection.execute(text("ALTER TABLE learner_users ADD COLUMN premium_until DATETIME"))
             else:
                 connection.execute(text("ALTER TABLE learner_users ADD COLUMN premium_until TIMESTAMP WITH TIME ZONE"))
+        learner_defs = {
+            "selected_level": "VARCHAR(32) DEFAULT 'A1' NOT NULL",
+            "preferred_topic": "VARCHAR(120)",
+        }
+        for name, definition in learner_defs.items():
+            if name not in learner_columns:
+                connection.execute(text(f"ALTER TABLE learner_users ADD COLUMN {name} {definition}"))
 
         if "word_items" not in inspector.get_table_names():
             return
@@ -74,6 +81,22 @@ def ensure_schema_compatibility() -> None:
             connection.execute(text("UPDATE word_items SET quality_status = 'published' WHERE is_active = true"))
         if "audio_status" not in word_columns:
             connection.execute(text("UPDATE word_items SET audio_status = 'ready' WHERE audio_url IS NOT NULL AND audio_url <> ''"))
+
+        if "learner_progress" not in inspector.get_table_names():
+            return
+
+        progress_columns = {column["name"] for column in inspector.get_columns("learner_progress")}
+        progress_defs = {
+            "is_bookmarked": "BOOLEAN DEFAULT false NOT NULL",
+            "review_interval_days": "INTEGER DEFAULT 1 NOT NULL",
+            "review_due_at": "TIMESTAMP WITH TIME ZONE",
+        }
+        if settings.resolved_database_url.startswith("sqlite"):
+            progress_defs["is_bookmarked"] = "BOOLEAN DEFAULT 0 NOT NULL"
+            progress_defs["review_due_at"] = "DATETIME"
+        for name, definition in progress_defs.items():
+            if name not in progress_columns:
+                connection.execute(text(f"ALTER TABLE learner_progress ADD COLUMN {name} {definition}"))
 
 
 def get_db() -> Generator[Session, None, None]:

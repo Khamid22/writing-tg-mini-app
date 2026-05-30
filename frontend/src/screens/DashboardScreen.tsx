@@ -30,7 +30,9 @@ export function DashboardScreen({
     if (!apiToken) return;
     setLoading(true);
     fetchDashboard()
-      .then(setData)
+      .then((res) => {
+        setData(res);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [apiToken]);

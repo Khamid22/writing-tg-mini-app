@@ -2,6 +2,16 @@ import type { JSX } from "react";
 import { CreditCard } from "lucide-react";
 import type { LearnerState } from "../types";
 import { countLearned } from "../helpers";
+import { updatePreferences } from "../api";
+
+const LEVEL_OPTIONS = [
+  { code: "A1", label: "Beginner" },
+  { code: "A2", label: "Elementary" },
+  { code: "B1", label: "Pre-Intermediate" },
+  { code: "B2", label: "Intermediate" },
+  { code: "C1", label: "Advanced" },
+  { code: "C2", label: "Proficient" },
+];
 
 export function ProfileScreen({
   state,
@@ -13,6 +23,11 @@ export function ProfileScreen({
   onLogout: () => void;
 }): JSX.Element {
   const script = state.uzbekScript ?? "latin";
+  function setLevel(level: string): void {
+    updateState((current) => ({ ...current, selectedLevel: level }));
+    updatePreferences({ selected_level: level }).catch(() => {});
+  }
+
   return (
     <section className="profile-layout">
       <div className="profile-card">
@@ -36,12 +51,34 @@ export function ProfileScreen({
       </section>
       <section className="panel">
         <div className="profile-stat">
+          <span>Daraja</span>
+          <strong>{LEVEL_OPTIONS.find((level) => level.code === state.selectedLevel)?.label ?? "Beginner"}</strong>
+        </div>
+        <div className="profile-stat">
           <span>Kunlik limit</span>
           <strong>{state.tier === "paid" ? "Cheksiz" : "10 ta so'z"}</strong>
         </div>
         <div className="profile-stat">
           <span>O'rganilgan so'zlar</span>
           <strong>{countLearned(state.progress)} ta so'z</strong>
+        </div>
+      </section>
+      <section className="panel">
+        <div className="panel-heading">
+          <h2>Daraja</h2>
+          <span>Istalgan payt o'zgartiring</span>
+        </div>
+        <div className="level-toggle" role="group" aria-label="English level">
+          {LEVEL_OPTIONS.map((level) => (
+            <button
+              key={level.code}
+              type="button"
+              data-active={state.selectedLevel === level.code}
+              onClick={() => setLevel(level.code)}
+            >
+              {level.label}
+            </button>
+          ))}
         </div>
       </section>
       <section className="panel">

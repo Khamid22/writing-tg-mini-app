@@ -8,6 +8,8 @@ export type ApiUser = {
   username: string | null;
   tier: LearnerState["tier"];
   premium_until: string | null;
+  selected_level: string;
+  preferred_topic: string | null;
 };
 
 export type ApiLimit = {
@@ -44,12 +46,22 @@ export type TodayWordResponse = {
   limit: ApiLimit;
 };
 
-export type WordEvent = "seen" | "listened" | "flipped" | "learned" | "practice_later" | "remembered" | "forgot";
+export type WordEvent =
+  | "seen"
+  | "listened"
+  | "flipped"
+  | "learned"
+  | "practice_later"
+  | "remembered"
+  | "forgot"
+  | "undo_learned"
+  | "bookmark"
+  | "unbookmark";
 export type WordReportReason = "too_difficult" | "wrong_meaning" | "audio_broken" | "bad_example" | "already_know";
 
 export type WordEventResponse = {
   ok: boolean;
-  progress: { status: string; mastery_score: number };
+  progress: { status: string; mastery_score: number; is_bookmarked: boolean };
   limit: ApiLimit;
 };
 
@@ -86,10 +98,20 @@ export type ApiDashboardStats = {
   streak_days: number;
   quiz_accuracy: number;
   mastered_total: number;
+  selected_level?: string;
+};
+
+export type ApiLevelProgress = {
+  level: string;
+  total: number;
+  learned: number;
+  unlock_at: number;
+  is_unlocked: boolean;
 };
 
 export type DashboardResponse = {
   stats: ApiDashboardStats;
+  level_progress?: ApiLevelProgress[];
   recent_words: ApiWord[];
 };
 
@@ -116,10 +138,16 @@ export type ApiProgressRow = {
   word_id: number;
   status: string;
   mastery_score: number;
+  is_bookmarked: boolean;
 };
 
 export type ProgressResponse = {
   items: ApiProgressRow[];
+  levels?: ApiLevelProgress[];
+};
+
+export type TopicsResponse = {
+  items: Array<{ topic: string; count: number }>;
 };
 
 export type ApiCollection = {
@@ -192,6 +220,8 @@ export function applyApiUser(state: LearnerState, user: ApiUser): LearnerState {
     username: user.username || state.username,
     tier: user.tier,
     premiumUntil: user.premium_until ?? undefined,
+    selectedLevel: user.selected_level || state.selectedLevel,
+    preferredTopic: user.preferred_topic ?? state.preferredTopic ?? null,
   };
 }
 
@@ -204,9 +234,16 @@ export async function authenticateTelegram(initData: string): Promise<AuthRespon
   return response;
 }
 
-export async function fetchTodayWord(collection?: string | null): Promise<TodayWordResponse> {
-  const query = collection ? `?collection=${encodeURIComponent(collection)}` : "";
+export async function fetchTodayWord(collection?: string | null, topic?: string | null): Promise<TodayWordResponse> {
+  const params = new URLSearchParams();
+  if (collection) params.set("collection", collection);
+  if (topic) params.set("topic", topic);
+  const query = params.toString() ? `?${params.toString()}` : "";
   return apiFetch<TodayWordResponse>(`/api/mini/words/today${query}`);
+}
+
+export async function fetchTopics(): Promise<TopicsResponse> {
+  return apiFetch<TopicsResponse>("/api/mini/words/topics");
 }
 
 export async function fetchWordAudio(wordId: number): Promise<{ word: string; audio_url: string | null }> {
@@ -266,6 +303,17 @@ export async function fetchDashboard(): Promise<DashboardResponse> {
 
 export async function fetchProgress(): Promise<ProgressResponse> {
   return apiFetch<ProgressResponse>("/api/mini/progress");
+}
+
+export async function updatePreferences(payload: {
+  display_name?: string;
+  selected_level?: string;
+  preferred_topic?: string | null;
+}): Promise<{ user: ApiUser; limit: ApiLimit }> {
+  return apiFetch<{ user: ApiUser; limit: ApiLimit }>("/api/mini/me/preferences", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function fetchLeaderboard(period: string = "weekly"): Promise<LeaderboardResponse> {

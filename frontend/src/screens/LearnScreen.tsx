@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { JSX } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { Check, Flag, Flame, RotateCcw, X } from "lucide-react";
+import { Check, Flag, Flame, RotateCcw, Star, X } from "lucide-react";
 import type { ApiLimit, ApiWord, WordEvent, WordReportReason } from "../api";
-import { fetchTodayWord, reportWord, sendWordEvent } from "../api";
+import { fetchTodayWord, fetchTopics, reportWord, sendWordEvent, updatePreferences } from "../api";
 import { pronounceWord } from "../audio";
 import { playSound } from "../soundSystem";
 import { hapticNotify, hapticSelection } from "../haptics";
@@ -40,6 +40,8 @@ export function LearnScreen({
   const [reportNotice, setReportNotice] = useState("");
   const [actionFeedback, setActionFeedback] = useState("");
   const [audioFeedback, setAudioFeedback] = useState("");
+  const [topics, setTopics] = useState<Array<{ topic: string; count: number }>>([]);
+  const [lastUndo, setLastUndo] = useState<{ wordId: number; label: string; level: string } | null>(null);
   const fetching = useRef(false);
   const reduce = useReducedMotion();
   const feedbackTimer = useRef<number | null>(null);
@@ -53,12 +55,13 @@ export function LearnScreen({
   }
 
   const activeCollection = state.activeCollection ?? null;
+  const activeTopic = state.preferredTopic ?? null;
 
   // Silent fetch: keeps the current card mounted so CSS transitions survive
   function fetchNext(initial = false): void {
     if (fetching.current) return;
     fetching.current = true;
-    fetchTodayWord(activeCollection)
+    fetchTodayWord(activeCollection, activeTopic)
       .then(({ item, is_review, limit: newLimit }) => {
         setWord(item);
         setIsReview(is_review);
@@ -91,7 +94,12 @@ export function LearnScreen({
     fetching.current = false;
     fetchNext(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiToken, activeCollection]);
+  }, [apiToken, activeCollection, activeTopic]);
+
+  useEffect(() => {
+    if (!apiToken) return;
+    fetchTopics().then((res) => setTopics(res.items.slice(0, 8))).catch(() => setTopics([]));
+  }, [apiToken]);
 
   useEffect(() => {
     return () => {
@@ -107,29 +115,43 @@ export function LearnScreen({
 
   function recordEvent(eventName: WordEvent): void {
     if (!word) return;
+    const targetWord = word;
     sendWordEvent(word.id, eventName)
       .then(({ progress, limit: newLimit }) => {
         setLimit(newLimit);
         syncLimitToState(newLimit);
         // Backend is the source of truth: it already avoids counting review actions as
         // newly learned, so we can always sync the returned status/mastery.
-        updateState((current) => ({
-          ...current,
-          progress: {
-            ...current.progress,
-            [word.id]: {
-              ...(current.progress[word.id] ?? {
-                status: "new", mastery: 0, seen: 0, listened: 0, flipped: 0, answered: 0, correct: 0,
-              }),
-              status: progress.status as LearnerState["progress"][number]["status"],
-              mastery: progress.mastery_score,
+        updateState((current) => {
+          const previous = current.progress[targetWord.id];
+          const wasLearned = previous?.status === "learned" || previous?.status === "mastered";
+          const nextStatus = progress.status as LearnerState["progress"][number]["status"];
+          const isNowLearned = nextStatus === "learned" || nextStatus === "mastered";
+          const learnedDelta = eventName === "learned" && !wasLearned && isNowLearned ? 1 : 0;
+          return {
+            ...current,
+            levelProgress: learnedDelta
+              ? current.levelProgress.map((item) => item.level === targetWord.level ? { ...item, learned: item.learned + 1 } : item)
+              : current.levelProgress,
+            progress: {
+              ...current.progress,
+              [targetWord.id]: {
+                ...(previous ?? {
+                  status: "new", mastery: 0, isBookmarked: false, seen: 0, listened: 0, flipped: 0, answered: 0, correct: 0,
+                }),
+                status: nextStatus,
+                mastery: progress.mastery_score,
+                isBookmarked: progress.is_bookmarked,
+              },
             },
-          },
-        }));
-        if (eventName === "learned") { showFeedback("+1 o'rganildi"); playSound("learned"); hapticNotify("success"); }
+          };
+        });
+        if (eventName === "learned") { setLastUndo({ wordId: targetWord.id, label: targetWord.word, level: targetWord.level }); showFeedback("+1 o'rganildi"); playSound("learned"); hapticNotify("success"); }
         if (eventName === "practice_later") { showFeedback("Keyingi karta"); playSound("skip"); hapticSelection(); }
         if (eventName === "remembered") { showFeedback("Takrorlash yangilandi"); playSound("correct"); hapticNotify("success"); }
         if (eventName === "forgot") { showFeedback("Qiyin deb belgilandi"); playSound("wrong"); hapticNotify("warning"); }
+        if (eventName === "bookmark" || eventName === "unbookmark") { showFeedback(eventName === "bookmark" ? "Saqlab qo'yildi" : "Saqlanganlardan olindi"); hapticSelection(); return; }
+        if (eventName === "undo_learned") { setLastUndo(null); showFeedback("Bekor qilindi"); fetchNext(); return; }
         if (eventName === "learned" || eventName === "practice_later" || eventName === "remembered" || eventName === "forgot") {
           fetchNext(); // silent — card stays mounted until next word arrives
         }
@@ -215,6 +237,45 @@ export function LearnScreen({
   const currentLevelIndex = Math.max(0, LEVEL_ROADMAP.findIndex((level) => level.code === word.level.toUpperCase()));
   const currentLevel = LEVEL_ROADMAP[currentLevelIndex] ?? LEVEL_ROADMAP[0];
   const nextLevel = LEVEL_ROADMAP[currentLevelIndex + 1];
+  const levelStats = state.levelProgress.find((item) => item.level === currentLevel.code);
+  const learnedInLevel = levelStats?.learned ?? 0;
+  const unlockAt = levelStats?.unlock_at ?? 0;
+  const roadmapText = unlockAt > 0
+    ? `${learnedInLevel}/${unlockAt} · keyingi bosqich`
+    : nextLevel ? `Keyingi: ${nextLevel.label}` : "Final bosqich";
+  const isBookmarked = Boolean(state.progress[word.id]?.isBookmarked);
+
+  function chooseTopic(topic: string | null): void {
+    updateState((current) => ({ ...current, preferredTopic: topic }));
+    updatePreferences({ preferred_topic: topic }).catch(() => {});
+  }
+
+  function undoLast(): void {
+    if (!lastUndo) return;
+    sendWordEvent(lastUndo.wordId, "undo_learned")
+      .then(({ progress, limit: newLimit }) => {
+        setLimit(newLimit);
+        syncLimitToState(newLimit);
+        updateState((current) => ({
+          ...current,
+          levelProgress: current.levelProgress.map((item) => item.level === lastUndo.level ? { ...item, learned: Math.max(0, item.learned - 1) } : item),
+          progress: {
+            ...current.progress,
+            [lastUndo.wordId]: {
+              ...(current.progress[lastUndo.wordId] ?? {
+                status: "new", mastery: 0, isBookmarked: false, seen: 0, listened: 0, flipped: 0, answered: 0, correct: 0,
+              }),
+              status: progress.status as LearnerState["progress"][number]["status"],
+              mastery: progress.mastery_score,
+              isBookmarked: progress.is_bookmarked,
+            },
+          },
+        }));
+        setLastUndo(null);
+        showFeedback("Oxirgi belgi bekor qilindi");
+      })
+      .catch(() => {});
+  }
 
   return (
     <section className="learn-layout">
@@ -228,7 +289,7 @@ export function LearnScreen({
         <div className="learn-roadmap-head">
           <span>Yo'l xaritasi</span>
           <strong>{currentLevel.label}</strong>
-          {nextLevel ? <em>Keyingi: {nextLevel.label}</em> : <em>Final bosqich</em>}
+          <em>{roadmapText}</em>
         </div>
         <div className="level-path">
           {LEVEL_ROADMAP.map((level, index) => (
@@ -254,6 +315,21 @@ export function LearnScreen({
         </span>
         <strong>{learnedTotal} ta o'rganildi</strong>
       </div>
+      {topics.length > 0 ? (
+        <div className="topic-strip" aria-label="Topic filter">
+          <button type="button" data-active={!activeTopic} onClick={() => chooseTopic(null)}>Hammasi</button>
+          {topics.map((item) => (
+            <button
+              type="button"
+              data-active={activeTopic === item.topic}
+              key={item.topic}
+              onClick={() => chooseTopic(activeTopic === item.topic ? null : item.topic)}
+            >
+              {item.topic}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       <motion.button
         key={`${word.id}-${isReview ? "review" : "learn"}`}
@@ -331,6 +407,16 @@ export function LearnScreen({
         <button aria-label="Muammo haqida xabar berish" className="icon-button" type="button" onClick={() => setReportOpen((v) => !v)}>
           <Flag size={18} />
         </button>
+        <button
+          aria-label={isBookmarked ? "Saqlanganlardan olish" : "Saqlab qo'yish"}
+          className="icon-button"
+          data-active={isBookmarked}
+          data-sound="off"
+          type="button"
+          onClick={() => recordEvent(isBookmarked ? "unbookmark" : "bookmark")}
+        >
+          <Star size={18} />
+        </button>
         {isReview ? (
           <>
             <button className="secondary-button" data-sound="off" type="button" onClick={() => recordEvent("forgot")}>
@@ -360,8 +446,15 @@ export function LearnScreen({
           <button type="button" onClick={() => void submitReport("already_know")}>Bu so'zni bilaman</button>
         </div>
       ) : null}
-      {actionFeedback || audioFeedback ? (
-        <p className="learn-feedback">{actionFeedback || audioFeedback}</p>
+      {actionFeedback || audioFeedback || lastUndo ? (
+        <p className="learn-feedback">
+          <span>{actionFeedback || audioFeedback}</span>
+          {lastUndo ? (
+            <button type="button" data-sound="off" onClick={undoLast}>
+              Bekor qilish
+            </button>
+          ) : null}
+        </p>
       ) : null}
       {reportNotice ? <p className="report-notice">{reportNotice}</p> : null}
     </section>

@@ -2,6 +2,15 @@ import { useState } from "react";
 import type { JSX } from "react";
 import type { LearnerState } from "../types";
 
+const LEVEL_OPTIONS = [
+  { code: "A1", title: "Beginner", desc: "Oddiy so'zlardan boshlayman" },
+  { code: "A2", title: "Elementary", desc: "Oddiy gaplarni tushunaman" },
+  { code: "B1", title: "Pre-Intermediate", desc: "Kundalik mavzularda gaplasha olaman" },
+  { code: "B2", title: "Intermediate", desc: "Writing va readingni kuchaytirmoqchiman" },
+  { code: "C1", title: "Advanced", desc: "Aniq, kuchli vocabulary kerak" },
+  { code: "C2", title: "Proficient", desc: "Nozik ma'nolar va professional uslub" },
+];
+
 export function RegistrationPage({
   state,
   onBack,
@@ -9,9 +18,10 @@ export function RegistrationPage({
 }: {
   state: LearnerState;
   onBack: () => void;
-  onComplete: (displayName: string) => void;
+  onComplete: (displayName: string, selectedLevel: string) => void;
 }): JSX.Element {
   const [displayName, setDisplayName] = useState(state.displayName);
+  const [selectedLevel, setSelectedLevel] = useState(state.selectedLevel ?? "A1");
 
   return (
     <main className="lp-shell lp-register">
@@ -60,8 +70,25 @@ export function RegistrationPage({
           />
           <div className="lp-field-hint">Bu ism leaderboardda ko'rinadi.</div>
         </div>
+        <div className="lp-level-select">
+          <div className="lp-field-label">Darajangizni tanlang</div>
+          <div className="lp-level-grid">
+            {LEVEL_OPTIONS.map((level) => (
+              <button
+                className="lp-level-option"
+                data-active={selectedLevel === level.code}
+                key={level.code}
+                type="button"
+                onClick={() => setSelectedLevel(level.code)}
+              >
+                <strong>{level.title}</strong>
+                <span>{level.desc}</span>
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="lp-reg-submit">
-          <button className="lp-btn lp-accent" type="button" onClick={() => onComplete(displayName)}>
+          <button className="lp-btn lp-accent" type="button" onClick={() => onComplete(displayName, selectedLevel)}>
             Boshlash
           </button>
           <span className="lp-reg-or">

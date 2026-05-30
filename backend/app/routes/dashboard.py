@@ -10,6 +10,7 @@ from app.models import LearnerProgress, LearnerUser, PointsEvent, ProgressStatus
 from app.routes.words import word_payload
 from app.schemas import DashboardResponse
 from app.services.limits import get_or_create_usage, limit_payload
+from app.services.progress import level_progress_for_user
 
 router = APIRouter(prefix="/api/mini", tags=["dashboard"])
 
@@ -55,7 +56,9 @@ def dashboard(user: LearnerUser = Depends(current_user), db: Session = Depends(g
             "streak_days": user.streak_days,
             "quiz_accuracy": accuracy,
             "mastered_total": agg.mastered_total,
+            "selected_level": user.selected_level,
         },
+        "level_progress": level_progress_for_user(db, user),
         "recent_words": [word_payload(word) for word in recent_words],
     }
 
@@ -70,13 +73,20 @@ def progress(user: LearnerUser = Depends(current_user), db: Session = Depends(ge
             LearnerProgress.word_item_id,
             LearnerProgress.status,
             LearnerProgress.mastery_score,
+            LearnerProgress.is_bookmarked,
         ).where(LearnerProgress.user_id == user.id)
     ).all()
     return {
         "items": [
-            {"word_id": row.word_item_id, "status": row.status, "mastery_score": row.mastery_score}
+            {
+                "word_id": row.word_item_id,
+                "status": row.status,
+                "mastery_score": row.mastery_score,
+                "is_bookmarked": row.is_bookmarked,
+            }
             for row in rows
-        ]
+        ],
+        "levels": level_progress_for_user(db, user),
     }
 
 

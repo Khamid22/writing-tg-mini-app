@@ -33,6 +33,9 @@ export function createInitialState(): LearnerState {
     tier: "free",
     paymentRequest: undefined,
     streak: 0,
+    selectedLevel: "A1",
+    preferredTopic: null,
+    levelProgress: [],
     uzbekScript: "latin",
     progress: {},
     dailyUsage: {},
@@ -80,6 +83,7 @@ export function emptyProgress(): WordProgress {
   return {
     status: "new",
     mastery: 0,
+    isBookmarked: false,
     seen: 0,
     listened: 0,
     flipped: 0,

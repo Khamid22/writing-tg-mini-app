@@ -4,6 +4,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -47,11 +48,12 @@ def word_payload(word: WordItem) -> dict:
 @router.get("/today", response_model=TodayWordResponse)
 def today_word(
     collection: str | None = None,
+    topic: str | None = None,
     user: LearnerUser = Depends(current_user),
     db: Session = Depends(get_db),
 ) -> dict:
     limit = limit_payload(db, user)
-    word, is_review = next_word_for_user(db, user, collection=collection or None)
+    word, is_review = next_word_for_user(db, user, collection=collection or None, topic=topic or user.preferred_topic)
     # Daily-limit cap only blocks NEW words; review practice is unlimited.
     if not limit["can_learn_more"] and not is_review:
         return {"item": None, "is_review": False, "limit": limit}
@@ -60,6 +62,17 @@ def today_word(
         "is_review": is_review,
         "limit": limit,
     }
+
+
+@router.get("/topics")
+def topics(user: LearnerUser = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    rows = db.execute(
+        select(WordItem.topic, func.count(WordItem.id))
+        .where(WordItem.is_active.is_(True), WordItem.quality_status == WordQualityStatus.PUBLISHED.value)
+        .group_by(WordItem.topic)
+        .order_by(func.count(WordItem.id).desc(), WordItem.topic.asc())
+    ).all()
+    return {"items": [{"topic": topic, "count": count} for topic, count in rows if topic]}
 
 
 @router.post("/{word_id}/events", response_model=WordEventResponse)
@@ -75,7 +88,11 @@ def word_event(
     progress = apply_word_event(db, user, word, payload.event)
     return {
         "ok": True,
-        "progress": {"status": progress.status, "mastery_score": progress.mastery_score},
+        "progress": {
+            "status": progress.status,
+            "mastery_score": progress.mastery_score,
+            "is_bookmarked": progress.is_bookmarked,
+        },
         "limit": limit_payload(db, user),
     }
 

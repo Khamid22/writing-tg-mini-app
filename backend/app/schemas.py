@@ -13,6 +13,8 @@ class UserPayload(BaseModel):
     username: str | None = None
     tier: str
     premium_until: str | None = None
+    selected_level: str = "A1"
+    preferred_topic: str | None = None
 
 
 class AuthResponse(BaseModel):
@@ -66,6 +68,7 @@ class WordEventRequest(BaseModel):
 class ProgressPayload(BaseModel):
     status: str
     mastery_score: int
+    is_bookmarked: bool = False
 
 
 class WordEventResponse(BaseModel):
@@ -111,6 +114,7 @@ class CompleteTestResponse(BaseModel):
 
 class DashboardResponse(BaseModel):
     stats: dict
+    level_progress: list[dict] = []
     recent_words: list[WordPayload]
 
 

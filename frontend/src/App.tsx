@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { JSX } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { BarChart3, BookMarked, BookOpen, Crown, GraduationCap, Medal, Menu, User, X } from "lucide-react";
-import { applyApiUser, authenticateTelegram, clearStoredToken, fetchProgress, getStoredToken } from "./api";
+import { applyApiUser, authenticateTelegram, clearStoredToken, fetchProgress, getStoredToken, updatePreferences } from "./api";
 import { DAILY_FREE_LIMIT } from "./data";
 import { clearState, dailyUsed, emptyProgress, loadState, saveState } from "./storage";
 import type { LearnerState, TelegramWebApp, WordProgress } from "./types";
@@ -30,6 +30,8 @@ const navItems: Array<{ tab: Tab; label: string; icon: typeof BookOpen }> = [
   { tab: "leaders", label: "Reyting", icon: Medal },
   { tab: "profile", label: "Profil", icon: User },
 ];
+
+const PENDING_PREFS_KEY = "uzbek-words-pending-preferences";
 
 export function App(): JSX.Element {
   const [entryScreen, setEntryScreen] = useState<EntryScreen>(() =>
@@ -77,10 +79,24 @@ export function App(): JSX.Element {
       .then((response) => {
         setApiToken(response.token);
         updateState((current) => applyApiUser(current, response.user));
+        const pendingPrefs = localStorage.getItem(PENDING_PREFS_KEY);
+        if (pendingPrefs) {
+          try {
+            const parsed = JSON.parse(pendingPrefs) as { display_name?: string; selected_level?: string; preferred_topic?: string | null };
+            updatePreferences(parsed)
+              .then((res) => {
+                localStorage.removeItem(PENDING_PREFS_KEY);
+                updateState((current) => applyApiUser(current, res.user));
+              })
+              .catch(() => {});
+          } catch {
+            localStorage.removeItem(PENDING_PREFS_KEY);
+          }
+        }
         // Hydrate local progress from the backend (single source of truth) so learned
         // counts are correct cross-device and increment live as the user learns.
         fetchProgress()
-          .then(({ items }) => {
+          .then(({ items, levels }) => {
             updateState((current) => {
               const progress = { ...current.progress };
               for (const row of items) {
@@ -88,9 +104,10 @@ export function App(): JSX.Element {
                   ...(progress[row.word_id] ?? emptyProgress()),
                   status: row.status as WordProgress["status"],
                   mastery: row.mastery_score,
+                  isBookmarked: row.is_bookmarked,
                 };
               }
-              return { ...current, progress };
+              return { ...current, progress, levelProgress: levels ?? current.levelProgress };
             });
           })
           .catch(() => {});
@@ -100,10 +117,16 @@ export function App(): JSX.Element {
       });
   }, [entryScreen]);
 
-  function completeRegistration(displayName: string): void {
+  function completeRegistration(displayName: string, selectedLevel: string): void {
     updateState((current) => ({
       ...current,
       displayName: displayName.trim() || current.displayName,
+      selectedLevel,
+    }));
+    localStorage.setItem(PENDING_PREFS_KEY, JSON.stringify({
+      display_name: displayName.trim() || state.displayName,
+      selected_level: selectedLevel,
+      preferred_topic: state.preferredTopic ?? null,
     }));
     localStorage.setItem("uzbek-words-onboarded", "true");
     setEntryScreen("app");
@@ -159,6 +182,7 @@ export function App(): JSX.Element {
             clearState();
             clearStoredToken();
             localStorage.removeItem("uzbek-words-onboarded");
+            localStorage.removeItem(PENDING_PREFS_KEY);
             setApiToken(null);
             setState(loadState());
             setActiveTab("learn");
