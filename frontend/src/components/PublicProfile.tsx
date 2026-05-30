@@ -46,7 +46,6 @@ export function PublicProfile({
           <>
             <div className="avatar">{profile.user.display_name.charAt(0)}</div>
             <h2>{profile.user.display_name}</h2>
-            <p>@{profile.user.username ?? "—"}</p>
             <div className="metric-grid compact">
               <Metric label="So'zlar" value={profile.stats.learned_total} />
               <Metric label="Ketma-ket" value={`${profile.stats.streak_days} kun`} />

@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import type { JSX } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { BarChart3, BookMarked, BookOpen, Crown, GraduationCap, Medal, Menu, User, X } from "lucide-react";
-import { applyApiUser, authenticateTelegram, clearStoredToken, getStoredToken } from "./api";
+import { applyApiUser, authenticateTelegram, clearStoredToken, fetchProgress, getStoredToken } from "./api";
 import { DAILY_FREE_LIMIT } from "./data";
-import { clearState, dailyUsed, loadState, saveState } from "./storage";
-import type { LearnerState, TelegramWebApp } from "./types";
+import { clearState, dailyUsed, emptyProgress, loadState, saveState } from "./storage";
+import type { LearnerState, TelegramWebApp, WordProgress } from "./types";
 import { LandingPage } from "./screens/LandingPage";
 import { RegistrationPage } from "./screens/RegistrationPage";
 import { LearnScreen } from "./screens/LearnScreen";
@@ -15,7 +15,8 @@ import { LeaderboardScreen } from "./screens/LeaderboardScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
 import { CoursesScreen } from "./screens/CoursesScreen";
 import { PublicProfile } from "./components/PublicProfile";
-import { playTapSound } from "./sound";
+import { playSound } from "./soundSystem";
+import { hapticSelection } from "./haptics";
 import { AnimatedScreen, tapScale } from "./uiMotion";
 
 type Tab = "learn" | "test" | "courses" | "dashboard" | "leaders" | "profile";
@@ -57,7 +58,8 @@ export function App(): JSX.Element {
       const target = event.target as HTMLElement | null;
       const button = target?.closest("button");
       if (!button || button.dataset.sound === "off") return;
-      playTapSound();
+      playSound("tap");
+      hapticSelection();
     };
     document.addEventListener("click", onClick, true);
     return () => document.removeEventListener("click", onClick, true);
@@ -75,6 +77,23 @@ export function App(): JSX.Element {
       .then((response) => {
         setApiToken(response.token);
         updateState((current) => applyApiUser(current, response.user));
+        // Hydrate local progress from the backend (single source of truth) so learned
+        // counts are correct cross-device and increment live as the user learns.
+        fetchProgress()
+          .then(({ items }) => {
+            updateState((current) => {
+              const progress = { ...current.progress };
+              for (const row of items) {
+                progress[row.word_id] = {
+                  ...(progress[row.word_id] ?? emptyProgress()),
+                  status: row.status as WordProgress["status"],
+                  mastery: row.mastery_score,
+                };
+              }
+              return { ...current, progress };
+            });
+          })
+          .catch(() => {});
       })
       .catch(() => {
         setApiToken(getStoredToken());

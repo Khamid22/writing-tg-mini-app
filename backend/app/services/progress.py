@@ -40,20 +40,50 @@ LEVEL_ORDER = case(
 )
 
 
+# Difficulty gating: the learner climbs this ladder automatically. The next level
+# only unlocks once they've covered most of the current one, so beginners are never
+# served words above their reach.
+LEVEL_SEQUENCE = ("A1", "A2", "B1", "B2", "C1", "C2")
+LEVEL_UNLOCK_COVERAGE = 0.8  # learn ~this share of a level before the next opens
+
+
 def allowed_levels_for_user(db: Session, user: LearnerUser) -> list[str]:
-    learned_count = db.scalar(
-        select(func.count(LearnerProgress.id)).where(
-            LearnerProgress.user_id == user.id,
-            LearnerProgress.status.in_(LEARNED_STATUSES),
-        )
-    ) or 0
-    if learned_count < 50:
-        return ["A1", "A2"]
-    if learned_count < 150:
-        return ["A1", "A2", "B1"]
-    if learned_count < 300:
-        return ["A1", "A2", "B1", "B2"]
-    return ["A1", "A2", "B1", "B2", "C1"]
+    """Progressive, automatic difficulty gating. Always returns at least the first
+    level, and only unlocks a harder level when the learner has learned/mastered most
+    of every easier one."""
+    published = (
+        WordItem.is_active.is_(True),
+        WordItem.quality_status == WordQualityStatus.PUBLISHED.value,
+    )
+    totals = dict(
+        db.execute(
+            select(WordItem.level, func.count(WordItem.id))
+            .where(*published)
+            .group_by(WordItem.level)
+        ).all()
+    )
+    learned = dict(
+        db.execute(
+            select(WordItem.level, func.count(LearnerProgress.id))
+            .join(LearnerProgress, LearnerProgress.word_item_id == WordItem.id)
+            .where(
+                *published,
+                LearnerProgress.user_id == user.id,
+                LearnerProgress.status.in_(LEARNED_STATUSES),
+            )
+            .group_by(WordItem.level)
+        ).all()
+    )
+
+    allowed: list[str] = []
+    for level in LEVEL_SEQUENCE:
+        allowed.append(level)
+        total = totals.get(level, 0)
+        if total == 0:
+            continue  # no words at this level → nothing to gate on, keep climbing
+        if learned.get(level, 0) < total * LEVEL_UNLOCK_COVERAGE:
+            break  # current level not covered yet → harder levels stay locked
+    return allowed or [LEVEL_SEQUENCE[0]]
 
 
 def next_word_for_user(
@@ -71,11 +101,15 @@ def next_word_for_user(
         WordItem.is_active.is_(True),
         WordItem.quality_status == WordQualityStatus.PUBLISHED.value,
     )
-    new_q = select(WordItem).where(*published_filter, WordItem.id.not_in(touched_ids))
+    # Level-gating applies whether or not a course is selected, so a beginner who opens
+    # an advanced course still never receives words above their reach.
+    new_q = select(WordItem).where(
+        *published_filter,
+        WordItem.id.not_in(touched_ids),
+        WordItem.level.in_(allowed_levels_for_user(db, user)),
+    )
     if collection:
         new_q = new_q.where(WordItem.collection == collection)
-    else:
-        new_q = new_q.where(WordItem.level.in_(allowed_levels_for_user(db, user)))
     new_word = db.scalar(new_q.order_by(LEVEL_ORDER.asc(), WordItem.difficulty_order.asc(), WordItem.id.asc()).limit(1))
     if new_word:
         return new_word, False

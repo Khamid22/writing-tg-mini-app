@@ -5,6 +5,8 @@ import { Check, Flag, Flame, RotateCcw, X } from "lucide-react";
 import type { ApiLimit, ApiWord, WordEvent, WordReportReason } from "../api";
 import { fetchTodayWord, reportWord, sendWordEvent } from "../api";
 import { pronounceWord } from "../audio";
+import { playSound } from "../soundSystem";
+import { hapticNotify, hapticSelection } from "../haptics";
 import { toUzbekScript } from "../script";
 import { getTodayKey } from "../storage";
 import type { LearnerState } from "../types";
@@ -100,27 +102,25 @@ export function LearnScreen({
       .then(({ progress, limit: newLimit }) => {
         setLimit(newLimit);
         syncLimitToState(newLimit);
+        // Backend is the source of truth: it already avoids counting review actions as
+        // newly learned, so we can always sync the returned status/mastery.
         updateState((current) => ({
           ...current,
           progress: {
             ...current.progress,
-            ...(isReview && !current.progress[word.id]
-              ? {}
-              : {
-                  [word.id]: {
-                    ...(current.progress[word.id] ?? {
-                      status: "new", mastery: 0, seen: 0, listened: 0, flipped: 0, answered: 0, correct: 0,
-                    }),
-                    status: progress.status as LearnerState["progress"][number]["status"],
-                    mastery: progress.mastery_score,
-                  },
-                }),
+            [word.id]: {
+              ...(current.progress[word.id] ?? {
+                status: "new", mastery: 0, seen: 0, listened: 0, flipped: 0, answered: 0, correct: 0,
+              }),
+              status: progress.status as LearnerState["progress"][number]["status"],
+              mastery: progress.mastery_score,
+            },
           },
         }));
-        if (eventName === "learned") showFeedback("+1 o'rganildi");
-        if (eventName === "practice_later") showFeedback("Keyingi karta");
-        if (eventName === "remembered") showFeedback("Takrorlash yangilandi");
-        if (eventName === "forgot") showFeedback("Qiyin deb belgilandi");
+        if (eventName === "learned") { showFeedback("+1 o'rganildi"); playSound("learned"); hapticNotify("success"); }
+        if (eventName === "practice_later") { showFeedback("Keyingi karta"); playSound("skip"); hapticSelection(); }
+        if (eventName === "remembered") { showFeedback("Takrorlash yangilandi"); playSound("correct"); hapticNotify("success"); }
+        if (eventName === "forgot") { showFeedback("Qiyin deb belgilandi"); playSound("wrong"); hapticNotify("warning"); }
         if (eventName === "learned" || eventName === "practice_later" || eventName === "remembered" || eventName === "forgot") {
           fetchNext(); // silent — card stays mounted until next word arrives
         }
@@ -301,19 +301,19 @@ export function LearnScreen({
         </button>
         {isReview ? (
           <>
-            <button className="secondary-button" type="button" onClick={() => recordEvent("forgot")}>
+            <button className="secondary-button" data-sound="off" type="button" onClick={() => recordEvent("forgot")}>
               <X size={16} /> Eslolmadim
             </button>
-            <button className="primary-button" type="button" onClick={() => recordEvent("remembered")}>
+            <button className="primary-button" data-sound="off" type="button" onClick={() => recordEvent("remembered")}>
               <Check size={16} /> Bilaman
             </button>
           </>
         ) : (
           <>
-            <button className="secondary-button" type="button" onClick={() => recordEvent("practice_later")}>
+            <button className="secondary-button" data-sound="off" type="button" onClick={() => recordEvent("practice_later")}>
               Keyingisi
             </button>
-            <button className="primary-button" type="button" onClick={() => recordEvent("learned")}>
+            <button className="primary-button" data-sound="off" type="button" onClick={() => recordEvent("learned")}>
               <Check size={16} /> Bilaman
             </button>
           </>

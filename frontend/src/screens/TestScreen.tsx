@@ -4,6 +4,8 @@ import { ChevronRight, GraduationCap, RotateCcw } from "lucide-react";
 import type { ApiQuestion, AnswerResponse } from "../api";
 import { answerTestQuestion, completeTest, startTest } from "../api";
 import type { LearnerState } from "../types";
+import { playSound } from "../soundSystem";
+import { hapticNotify } from "../haptics";
 
 type QuizState =
   | { phase: "idle" }
@@ -57,6 +59,8 @@ export function TestScreen({
     answerTestQuestion(quiz.attemptId, current.id, choice)
       .then((res: AnswerResponse) => {
         const newScore = quiz.score + (res.is_correct ? 1 : 0);
+        if (res.is_correct) { playSound("correct"); hapticNotify("success"); }
+        else { playSound("wrong"); hapticNotify("warning"); }
         setQuiz({ ...quiz, selected: choice, correctAnswer: res.correct_choice, score: newScore });
         updateState((existing) => ({
           ...existing,
@@ -82,9 +86,11 @@ export function TestScreen({
     if (nextIndex >= quiz.questions.length) {
       completeTest(quiz.attemptId)
         .then((res) => {
+          playSound("complete");
           setQuiz({ phase: "done", score: res.score, total: res.total_questions, accuracy: res.accuracy });
         })
         .catch(() => {
+          playSound("complete");
           setQuiz({ phase: "done", score: quiz.score, total: quiz.questions.length, accuracy: Math.round((quiz.score / quiz.questions.length) * 100) });
         });
     } else {
@@ -149,6 +155,7 @@ export function TestScreen({
               className="choice-button"
               data-correct={isCorrect}
               data-wrong={isWrong}
+              data-sound="off"
               disabled={quiz.selected !== null}
               key={choice}
               onClick={() => answer(choice)}

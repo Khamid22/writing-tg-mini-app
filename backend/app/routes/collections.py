@@ -8,6 +8,7 @@ from app.config import get_settings
 from app.db.session import get_db
 from app.dependencies import current_user
 from app.models import LearnerProgress, LearnerTier, LearnerUser, ProgressStatus, WordItem, WordQualityStatus
+from app.services.progress import allowed_levels_for_user
 
 router = APIRouter(prefix="/api/mini/collections", tags=["collections"])
 
@@ -51,9 +52,11 @@ def list_collections(user: LearnerUser = Depends(current_user), db: Session = De
     settings = get_settings()
     free_name = settings.free_collection_name
     is_paid = user.tier == LearnerTier.PAID.value
+    allowed_levels = set(allowed_levels_for_user(db, user))
 
     items = []
     for name, total, min_level, max_level, learned in rows:
+        is_above_level = bool(min_level and min_level not in allowed_levels)
         items.append({
             "name": name,
             "total_words": int(total),
@@ -62,5 +65,6 @@ def list_collections(user: LearnerUser = Depends(current_user), db: Session = De
                 min_level if min_level == max_level else f"{min_level}–{max_level}"
             ) if min_level else "—",
             "is_locked": (not is_paid) and (name != free_name),
+            "is_above_level": is_above_level,
         })
     return {"items": items, "free_collection_name": free_name}

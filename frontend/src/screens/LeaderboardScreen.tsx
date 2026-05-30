@@ -54,7 +54,6 @@ export function LeaderboardScreen({
           <span className="rank">{row.rank}</span>
           <div>
             <strong>{row.display_name}</strong>
-            <span>@{row.username ?? "—"}</span>
           </div>
           <strong>{row.points}</strong>
         </button>

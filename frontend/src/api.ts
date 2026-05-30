@@ -97,7 +97,6 @@ export type LeaderboardItem = {
   rank: number;
   user_id: number;
   display_name: string;
-  username: string | null;
   points: number;
   learned_total: number;
 };
@@ -108,9 +107,19 @@ export type LeaderboardResponse = {
 };
 
 export type PublicProfileResponse = {
-  user: { id: number; display_name: string; username: string | null };
+  user: { id: number; display_name: string };
   stats: { learned_total: number; mastered_total: number; streak_days: number; total_points: number };
   recent_words: ApiWord[];
+};
+
+export type ApiProgressRow = {
+  word_id: number;
+  status: string;
+  mastery_score: number;
+};
+
+export type ProgressResponse = {
+  items: ApiProgressRow[];
 };
 
 export type ApiCollection = {
@@ -119,6 +128,7 @@ export type ApiCollection = {
   learned_count: number;
   level_range: string;
   is_locked: boolean;
+  is_above_level: boolean;
 };
 
 export type CollectionsResponse = {
@@ -252,6 +262,10 @@ export async function completeTest(attemptId: number): Promise<CompleteTestRespo
 
 export async function fetchDashboard(): Promise<DashboardResponse> {
   return apiFetch<DashboardResponse>("/api/mini/dashboard");
+}
+
+export async function fetchProgress(): Promise<ProgressResponse> {
+  return apiFetch<ProgressResponse>("/api/mini/progress");
 }
 
 export async function fetchLeaderboard(period: string = "weekly"): Promise<LeaderboardResponse> {

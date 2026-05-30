@@ -60,6 +60,26 @@ def dashboard(user: LearnerUser = Depends(current_user), db: Session = Depends(g
     }
 
 
+@router.get("/progress")
+def progress(user: LearnerUser = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    """Full per-word progress for the current user, so the client can hydrate its
+    local state from the backend (the single source of truth) instead of relying on
+    in-session localStorage. Keyed by backend word IDs."""
+    rows = db.execute(
+        select(
+            LearnerProgress.word_item_id,
+            LearnerProgress.status,
+            LearnerProgress.mastery_score,
+        ).where(LearnerProgress.user_id == user.id)
+    ).all()
+    return {
+        "items": [
+            {"word_id": row.word_item_id, "status": row.status, "mastery_score": row.mastery_score}
+            for row in rows
+        ]
+    }
+
+
 @router.get("/users/{user_id}")
 def public_profile(user_id: int, db: Session = Depends(get_db)) -> dict:
     user = db.get(LearnerUser, user_id)
@@ -95,7 +115,7 @@ def public_profile(user_id: int, db: Session = Depends(get_db)) -> dict:
     )
 
     return {
-        "user": {"id": user.id, "display_name": user.display_name, "username": user.username},
+        "user": {"id": user.id, "display_name": user.display_name},
         "stats": {
             "learned_total": agg.learned_total,
             "mastered_total": agg.mastered_total,

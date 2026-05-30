@@ -1,7 +1,7 @@
 import type { JSX } from "react";
 import { CreditCard } from "lucide-react";
 import type { LearnerState } from "../types";
-import { learnedWords } from "../helpers";
+import { countLearned } from "../helpers";
 
 export function ProfileScreen({
   state,
@@ -40,8 +40,8 @@ export function ProfileScreen({
           <strong>{state.tier === "paid" ? "Cheksiz" : "10 ta so'z"}</strong>
         </div>
         <div className="profile-stat">
-          <span>Ommaviy profil</span>
-          <strong>{learnedWords(state).length} ta so'z</strong>
+          <span>O'rganilgan so'zlar</span>
+          <strong>{countLearned(state.progress)} ta so'z</strong>
         </div>
       </section>
       <section className="panel">

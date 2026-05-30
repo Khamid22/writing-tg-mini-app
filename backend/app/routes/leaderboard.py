@@ -38,7 +38,6 @@ def leaderboard(period: str = "weekly", db: Session = Depends(get_db)) -> dict:
         select(
             LearnerUser.id,
             LearnerUser.display_name,
-            LearnerUser.username,
             func.coalesce(points_subq.c.total, 0).label("points"),
             func.coalesce(learned_subq.c.count, 0).label("learned_total"),
         )
@@ -55,7 +54,6 @@ def leaderboard(period: str = "weekly", db: Session = Depends(get_db)) -> dict:
                 "rank": index,
                 "user_id": row.id,
                 "display_name": row.display_name,
-                "username": row.username,
                 "points": row.points,
                 "learned_total": row.learned_total,
             }

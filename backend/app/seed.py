@@ -21,6 +21,10 @@ def seed_words() -> None:
                 for key, value in item.items():
                     setattr(word, key, value)
         db.commit()
+        # Order freshly seeded words easiest/most-common first within each level.
+        from app.scripts.backfill_difficulty import backfill_difficulty
+
+        backfill_difficulty(db)
     finally:
         db.close()
 

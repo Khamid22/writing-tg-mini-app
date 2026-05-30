@@ -1,5 +1,7 @@
 export type Tier = "free" | "paid";
 export type UzbekScriptPreference = "latin" | "cyrillic";
+export type HapticImpactStyle = "light" | "medium" | "heavy" | "rigid" | "soft";
+export type HapticNotificationType = "error" | "success" | "warning";
 
 export type Word = {
   id: number;
@@ -76,6 +78,11 @@ export type TelegramWebApp = {
   setBottomBarColor?: (color: string) => void;
   onEvent?: (eventType: string, eventHandler: () => void) => void;
   offEvent?: (eventType: string, eventHandler: () => void) => void;
+  HapticFeedback?: {
+    impactOccurred?: (style: HapticImpactStyle) => void;
+    notificationOccurred?: (type: HapticNotificationType) => void;
+    selectionChanged?: () => void;
+  };
   initData?: string;
   viewportHeight?: number;
   viewportStableHeight?: number;

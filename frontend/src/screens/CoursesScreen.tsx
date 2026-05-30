@@ -56,7 +56,14 @@ export function CoursesScreen({ apiToken, activeCollection, onSelect }: Props): 
             ? 0
             : Math.round((course.learned_count / course.total_words) * 100);
           const finished = course.total_words > 0 && course.learned_count >= course.total_words;
-          const action = course.is_locked ? "locked" : isActive ? "active" : (course.learned_count > 0 ? "continue" : "start");
+          const unavailable = course.is_locked || course.is_above_level;
+          const action = course.is_locked
+            ? "locked"
+            : course.is_above_level
+              ? "above"
+              : isActive
+                ? "active"
+                : (course.learned_count > 0 ? "continue" : "start");
 
           return (
             <motion.button
@@ -64,11 +71,11 @@ export function CoursesScreen({ apiToken, activeCollection, onSelect }: Props): 
               type="button"
               className="course-card"
               data-active={isActive}
-              data-locked={course.is_locked}
-              disabled={course.is_locked}
-              whileTap={tapScale(course.is_locked)}
+              data-locked={unavailable}
+              disabled={unavailable}
+              whileTap={tapScale(unavailable)}
               onClick={() => {
-                if (course.is_locked) return;
+                if (unavailable) return;
                 onSelect(isActive ? null : course.name);
               }}
             >
@@ -81,6 +88,8 @@ export function CoursesScreen({ apiToken, activeCollection, onSelect }: Props): 
                   <span className="course-card-badge"><Crown size={13} /> Premium</span>
                 ) : isActive ? (
                   <span className="course-card-badge active"><Check size={13} /> Faol</span>
+                ) : course.is_above_level ? (
+                  <span className="course-card-badge above"><Lock size={13} /> Yuqori daraja</span>
                 ) : null}
               </div>
               <div className="course-card-progress">
@@ -91,6 +100,7 @@ export function CoursesScreen({ apiToken, activeCollection, onSelect }: Props): 
               </div>
               <div className="course-card-action">
                 {action === "locked" ? <><Lock size={14} /> Qulflangan</>
+                  : action === "above" ? <><Lock size={14} /> Daraja hali ochilmagan</>
                   : action === "active" ? <>Tanlandi · qayta bosing — bekor qilish</>
                   : finished ? <><Check size={14} /> Tugatildi · qaytadan</>
                   : action === "continue" ? <><Play size={14} /> Davom etish</>

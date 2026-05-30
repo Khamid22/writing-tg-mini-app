@@ -624,6 +624,53 @@ h2 {
   transform-origin: left;
 }
 
+.dash-hero {
+  display: grid;
+  gap: 20px;
+}
+
+.dash-hero-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.dash-hero-headline {
+  display: grid;
+  gap: 6px;
+}
+
+.dash-hero-label,
+.dash-hero-sub,
+.dash-hero-goal span {
+  color: #6f6f69;
+}
+
+.dash-hero-num {
+  color: #1f1f1d;
+  font-size: clamp(44px, 12vw, 72px);
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid #d8d8d2;
+  border-radius: 999px;
+  background: #fafaf6;
+  color: #1f1f1d;
+  white-space: nowrap;
+}
+
+.dash-hero-goal .progress-bar {
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
 .word-list {
   display: grid;
   gap: 12px;
@@ -1220,7 +1267,7 @@ h2 {
     column-gap: 28px;
   }
 
-  .dashboard-layout > .metric-grid {
+  .dashboard-layout > .dash-hero {
     grid-area: metrics;
   }
 
@@ -2903,9 +2950,8 @@ h2 {
     align-items: start;
   }
 
-  .dashboard-layout > .metric-grid {
+  .dashboard-layout > .dash-hero {
     grid-area: metrics;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .dashboard-layout > .panel:nth-child(2) {
@@ -4225,6 +4271,10 @@ h2 {
 .course-card-badge.active {
   background: #dcfce7;
   color: #166534;
+}
+.course-card-badge.above {
+  background: #eceae4;
+  color: #5d564d;
 }
 
 .course-card-progress {
