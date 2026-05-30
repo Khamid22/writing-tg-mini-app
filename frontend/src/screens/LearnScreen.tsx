@@ -234,9 +234,6 @@ export function LearnScreen({
     );
   }
 
-  const learnedTotal = Object.values(state.progress).filter(
-    (p) => p.status === "learned" || p.status === "mastered",
-  ).length;
   const script = state.uzbekScript ?? "latin";
   const uzbekDefinition = toUzbekScript(word.uzbek_definition, script);
   const uzbekExample = toUzbekScript(word.uzbek_example, script);
@@ -335,21 +332,6 @@ export function LearnScreen({
           ))}
         </div>
       </div>
-      <div className="daily-strip">
-        <span>
-          {isReview
-            ? "Takror mashqi · cheksiz"
-            : state.tier === "paid"
-              ? "Bugun cheksiz so'z"
-              : `${limit.daily_remaining} ta bepul so'z qoldi`}
-        </span>
-        <strong>{learnedTotal} ta o'rganildi</strong>
-      </div>
-      <div className="topic-session-pill">
-        <span>Mavzu: {topicLabel(activeTopic)}</span>
-        <button type="button" onClick={() => chooseTopic(undefined)}>O'zgartirish</button>
-      </div>
-
       <motion.button
         key={`${word.id}-${isReview ? "review" : "learn"}`}
         aria-label={flipped ? "So'zni ko'rsatish" : "Ma'noni ko'rsatish"}
