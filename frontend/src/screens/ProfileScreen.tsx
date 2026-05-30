@@ -12,6 +12,7 @@ export function ProfileScreen({
   updateState: (updater: (current: LearnerState) => LearnerState) => void;
   onLogout: () => void;
 }): JSX.Element {
+  const script = state.uzbekScript ?? "latin";
   return (
     <section className="profile-layout">
       <div className="profile-card">
@@ -46,19 +47,19 @@ export function ProfileScreen({
       <section className="panel">
         <div className="panel-heading">
           <h2>Yozuv</h2>
-          <span>{state.uzbekScript === "cyrillic" ? "Кирилл" : "Latin"}</span>
+          <span>{script === "cyrillic" ? "Кирилл" : "Latin"}</span>
         </div>
         <div className="script-toggle" role="group" aria-label="Uzbek yozuvi">
           <button
             type="button"
-            data-active={state.uzbekScript === "latin"}
+            data-active={script === "latin"}
             onClick={() => updateState((current) => ({ ...current, uzbekScript: "latin" }))}
           >
             Lotincha
           </button>
           <button
             type="button"
-            data-active={state.uzbekScript === "cyrillic"}
+            data-active={script === "cyrillic"}
             onClick={() => updateState((current) => ({ ...current, uzbekScript: "cyrillic" }))}
           >
             Кириллча

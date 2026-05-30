@@ -6,8 +6,8 @@ const LATIN_TO_CYRILLIC: Array<[RegExp, string]> = [
   [/ya/gi, "я"],
   [/sh/gi, "ш"],
   [/ch/gi, "ч"],
-  [/g'/gi, "ғ"],
-  [/o'/gi, "ў"],
+  [/g['ʻ‘’`]/gi, "ғ"],
+  [/o['ʻ‘’`]/gi, "ў"],
   [/ng/gi, "нг"],
 ];
 
@@ -31,5 +31,5 @@ export function toUzbekScript(value: string, script: UzbekScript): string {
   }
   return output
     .replace(/[A-Za-z]/g, (char) => CHAR_TO_CYRILLIC[char] ?? char)
-    .replace(/['ʼ]/g, "ъ");
+    .replace(/['ʻ‘’`]/g, "ъ");
 }

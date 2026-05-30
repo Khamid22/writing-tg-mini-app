@@ -171,8 +171,9 @@ export function LearnScreen({
   const learnedTotal = Object.values(state.progress).filter(
     (p) => p.status === "learned" || p.status === "mastered",
   ).length;
-  const uzbekDefinition = toUzbekScript(word.uzbek_definition, state.uzbekScript);
-  const uzbekExample = toUzbekScript(word.uzbek_example, state.uzbekScript);
+  const script = state.uzbekScript ?? "latin";
+  const uzbekDefinition = toUzbekScript(word.uzbek_definition, script);
+  const uzbekExample = toUzbekScript(word.uzbek_example, script);
 
   return (
     <section className="learn-layout">
