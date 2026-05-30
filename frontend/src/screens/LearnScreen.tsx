@@ -188,8 +188,8 @@ export function LearnScreen({
       >
         <motion.div
           className="flashcard-inner"
-          animate={{ rotateY: reduce ? 0 : flipTurn * 540 }}
-          transition={reduce ? { duration: 0 } : { duration: 0.64, ease: [0.32, 0.72, 0, 1] }}
+          animate={{ rotateY: reduce ? 0 : flipTurn * 180 }}
+          transition={reduce ? { duration: 0 } : { duration: 0.42, ease: [0.32, 0.72, 0, 1] }}
         >
           <div className="flashcard-side flashcard-front">
             <div className="flashcard-meta">
