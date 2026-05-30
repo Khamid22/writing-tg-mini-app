@@ -71,7 +71,7 @@ export function DashboardScreen({
           {recent_words.map((word: ApiWord) => (
             <div className="word-row" key={word.id}>
               <div>
-                <strong>{word.word}</strong>
+                <strong data-script-lock>{word.word}</strong>
                 <span>{word.topic || word.uzbek_definition}</span>
               </div>
               <span>{state.progress[word.id]?.mastery ?? 0}%</span>

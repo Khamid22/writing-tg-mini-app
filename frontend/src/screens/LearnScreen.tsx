@@ -214,9 +214,9 @@ export function LearnScreen({
           <div className="flashcard-side flashcard-front">
             <div className="flashcard-meta">
               <span>{isReview ? "Takror" : "Karta"} · {word.level}</span>
-              <span>{word.word_type}</span>
+              <span data-script-lock>{word.word_type}</span>
             </div>
-            <div className="flashcard-word-block">
+            <div className="flashcard-word-block" data-script-lock>
               <h2>{word.word}</h2>
               <p className="phonetic">{word.phonetic} · {word.word_type}</p>
             </div>
@@ -241,11 +241,11 @@ export function LearnScreen({
             <div className="flashcard-defs">
               <dl>
                 <dt>Inglizcha</dt>
-                <dd>{word.english_definition}</dd>
+                <dd data-script-lock>{word.english_definition}</dd>
                 <dt>O'zbekcha</dt>
                 <dd>{uzbekDefinition}</dd>
                 <dt>Misol</dt>
-                <dd><em>{word.english_example}</em></dd>
+                <dd data-script-lock><em>{word.english_example}</em></dd>
                 <dt>Tarjima</dt>
                 <dd>{uzbekExample}</dd>
               </dl>

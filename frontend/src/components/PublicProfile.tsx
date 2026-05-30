@@ -61,7 +61,7 @@ export function PublicProfile({
                 {profile.recent_words.map((word) => (
                   <div className="word-row" key={word.id}>
                     <div>
-                      <strong>{word.word}</strong>
+                      <strong data-script-lock>{word.word}</strong>
                       <span>{word.topic || word.level}</span>
                     </div>
                     <span>{word.uzbek_definition}</span>

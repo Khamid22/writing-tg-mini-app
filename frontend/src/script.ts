@@ -1,5 +1,16 @@
 export type UzbekScript = "latin" | "cyrillic";
 
+const ORIGINAL_TEXT = new WeakMap<Text, string>();
+const SCRIPT_LOCK_SELECTOR = [
+  "[data-script-lock]",
+  "input",
+  "textarea",
+  "select",
+  "option",
+  "code",
+  "pre",
+].join(",");
+
 const LATIN_TO_CYRILLIC: Array<[RegExp, string]> = [
   [/yo/gi, "ё"],
   [/yu/gi, "ю"],
@@ -32,4 +43,41 @@ export function toUzbekScript(value: string, script: UzbekScript): string {
   return output
     .replace(/[A-Za-z]/g, (char) => CHAR_TO_CYRILLIC[char] ?? char)
     .replace(/['ʻ‘’`]/g, "ъ");
+}
+
+export function applyScriptToElement(root: HTMLElement, script: UzbekScript): void {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes: Text[] = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode as Text);
+
+  for (const node of nodes) {
+    const parent = node.parentElement;
+    if (!parent || !node.nodeValue?.trim()) continue;
+
+    const original = ORIGINAL_TEXT.get(node) ?? node.nodeValue;
+    ORIGINAL_TEXT.set(node, original);
+
+    if (parent.closest(SCRIPT_LOCK_SELECTOR)) {
+      if (node.nodeValue !== original) node.nodeValue = original;
+      continue;
+    }
+
+    const nextValue = toUzbekScript(original, script);
+    if (node.nodeValue !== nextValue) node.nodeValue = nextValue;
+  }
+}
+
+export function watchScriptElement(root: HTMLElement, script: UzbekScript): () => void {
+  let frame = 0;
+  const run = () => {
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(() => applyScriptToElement(root, script));
+  };
+  run();
+  const observer = new MutationObserver(run);
+  observer.observe(root, { childList: true, subtree: true, characterData: true });
+  return () => {
+    cancelAnimationFrame(frame);
+    observer.disconnect();
+  };
 }
