@@ -139,7 +139,7 @@ export function TestScreen({
         <span>Savol {quiz.index + 1}</span>
         <strong>{quiz.index + 1}/{quiz.questions.length}</strong>
       </div>
-      <h2>{current.prompt}</h2>
+      <h2 data-script-lock>{current.prompt}</h2>
       <div className="choices">
         {current.choices.map((choice) => {
           const isCorrect = quiz.selected !== null && choice === quiz.correctAnswer;
@@ -154,7 +154,7 @@ export function TestScreen({
               onClick={() => answer(choice)}
               type="button"
             >
-              <span>{choice}</span>
+              <span data-script-lock>{choice}</span>
               <ChevronRight size={16} />
             </button>
           );

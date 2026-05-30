@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { JSX } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { BarChart3, BookMarked, BookOpen, Crown, GraduationCap, Medal, Menu, User, X } from "lucide-react";
@@ -15,7 +15,6 @@ import { LeaderboardScreen } from "./screens/LeaderboardScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
 import { CoursesScreen } from "./screens/CoursesScreen";
 import { PublicProfile } from "./components/PublicProfile";
-import { watchScriptElement } from "./script";
 import { playTapSound } from "./sound";
 import { AnimatedScreen, tapScale } from "./uiMotion";
 
@@ -32,7 +31,6 @@ const navItems: Array<{ tab: Tab; label: string; icon: typeof BookOpen }> = [
 ];
 
 export function App(): JSX.Element {
-  const appShellRef = useRef<HTMLDivElement | null>(null);
   const [entryScreen, setEntryScreen] = useState<EntryScreen>(() =>
     localStorage.getItem("uzbek-words-onboarded") === "true" ? "app" : "landing",
   );
@@ -53,11 +51,6 @@ export function App(): JSX.Element {
   useEffect(() => {
     saveState(state);
   }, [state]);
-
-  useEffect(() => {
-    if (!appShellRef.current) return;
-    return watchScriptElement(appShellRef.current, state.uzbekScript ?? "latin");
-  }, [state.uzbekScript, activeTab, drawerOpen, selectedUserId]);
 
   useEffect(() => {
     const onClick = (event: MouseEvent) => {
@@ -159,7 +152,7 @@ export function App(): JSX.Element {
   }
 
   return (
-    <div className="app-shell" data-drawer-open={drawerOpen} ref={appShellRef}>
+    <div className="app-shell" data-drawer-open={drawerOpen}>
       <header className="topbar">
         <button
           type="button"
