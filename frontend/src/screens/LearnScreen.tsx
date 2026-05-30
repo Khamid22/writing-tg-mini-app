@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import type { JSX } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { Check, Flame, Headphones, RotateCcw, X } from "lucide-react";
 import type { ApiLimit, ApiWord, WordEvent } from "../api";
 import { fetchTodayWord, sendWordEvent } from "../api";
 import { pronounceWord } from "../audio";
 import { getTodayKey } from "../storage";
 import type { LearnerState } from "../types";
+import { spring, tapScale } from "../uiMotion";
 
 export function LearnScreen({
   state,
@@ -22,6 +24,7 @@ export function LearnScreen({
   const [initialLoading, setInitialLoading] = useState(true);
   const [flipped, setFlipped] = useState(false);
   const fetching = useRef(false);
+  const reduce = useReducedMotion();
 
   function syncLimitToState(lim: ApiLimit): void {
     updateState((current) => ({
@@ -168,12 +171,17 @@ export function LearnScreen({
         <strong>{learnedTotal} ta o'rganildi</strong>
       </div>
 
-      <button
+      <motion.button
+        key={`${word.id}-${isReview ? "review" : "learn"}`}
         aria-label={flipped ? "So'zni ko'rsatish" : "Ma'noni ko'rsatish"}
         className="flashcard"
         data-flipped={flipped}
         onClick={flip}
         type="button"
+        initial={reduce ? false : { opacity: 0, y: 10, scale: 0.99 }}
+        animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+        transition={reduce ? { duration: 0 } : spring}
+        whileTap={tapScale()}
       >
         <div className="flashcard-side flashcard-front">
           <div className="flashcard-meta">
@@ -225,7 +233,7 @@ export function LearnScreen({
             </button>
           </div>
         </div>
-      </button>
+      </motion.button>
 
       <div className="action-row">
         <button aria-label="Tinglash" className="icon-button" type="button" onClick={speak}>

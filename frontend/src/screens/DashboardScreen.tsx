@@ -4,6 +4,7 @@ import type { ApiWord, DashboardResponse } from "../api";
 import { fetchDashboard } from "../api";
 import { Metric } from "../components/Metric";
 import type { LearnerState } from "../types";
+import { MotionProgress } from "../uiMotion";
 
 export function DashboardScreen({
   state,
@@ -41,8 +42,9 @@ export function DashboardScreen({
   }
 
   const { stats, recent_words } = data;
-  const dailyMax = stats.daily_limit ?? 100;
+  const dailyMax = Math.max(stats.daily_limit ?? 100, 1);
   const dailyUsed = stats.learned_today;
+  const dailyProgress = state.tier === "paid" ? 100 : (dailyUsed / dailyMax) * 100;
 
   return (
     <section className="dashboard-layout">
@@ -58,7 +60,7 @@ export function DashboardScreen({
           <span>{state.tier === "paid" ? "Cheksiz" : `${dailyUsed}/${dailyMax}`}</span>
         </div>
         <div className="progress-bar" aria-label="Kunlik rivojlanish">
-          <span style={{ width: `${state.tier === "paid" ? 100 : (dailyUsed / dailyMax) * 100}%` }} />
+          <MotionProgress value={dailyProgress} />
         </div>
       </section>
       <section className="panel">

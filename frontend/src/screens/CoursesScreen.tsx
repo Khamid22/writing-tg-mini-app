@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import type { JSX } from "react";
 import { BookMarked, Check, Crown, Lock, Play } from "lucide-react";
+import { motion } from "motion/react";
 import type { ApiCollection } from "../api";
 import { fetchCollections } from "../api";
+import { MotionProgress, tapScale } from "../uiMotion";
 
 type Props = {
   apiToken: string | null;
@@ -57,13 +59,14 @@ export function CoursesScreen({ apiToken, activeCollection, onSelect }: Props): 
           const action = course.is_locked ? "locked" : isActive ? "active" : (course.learned_count > 0 ? "continue" : "start");
 
           return (
-            <button
+            <motion.button
               key={course.name}
               type="button"
               className="course-card"
               data-active={isActive}
               data-locked={course.is_locked}
               disabled={course.is_locked}
+              whileTap={tapScale(course.is_locked)}
               onClick={() => {
                 if (course.is_locked) return;
                 onSelect(isActive ? null : course.name);
@@ -82,7 +85,7 @@ export function CoursesScreen({ apiToken, activeCollection, onSelect }: Props): 
               </div>
               <div className="course-card-progress">
                 <div className="progress-bar">
-                  <span style={{ width: `${percent}%` }} />
+                  <MotionProgress value={percent} />
                 </div>
                 <span>{course.learned_count}/{course.total_words}</span>
               </div>
@@ -93,7 +96,7 @@ export function CoursesScreen({ apiToken, activeCollection, onSelect }: Props): 
                   : action === "continue" ? <><Play size={14} /> Davom etish</>
                   : <><Play size={14} /> Boshlash</>}
               </div>
-            </button>
+            </motion.button>
           );
         })}
       </div>

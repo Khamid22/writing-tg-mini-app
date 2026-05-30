@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import type { JSX } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import type { PublicProfileResponse } from "../api";
 import { fetchPublicProfile } from "../api";
 import { Metric } from "./Metric";
+import { spring } from "../uiMotion";
 
 export function PublicProfile({
   userId,
@@ -12,6 +14,7 @@ export function PublicProfile({
   onClose: () => void;
 }): JSX.Element {
   const [profile, setProfile] = useState<PublicProfileResponse | null>(null);
+  const reduce = useReducedMotion();
 
   useEffect(() => {
     fetchPublicProfile(userId)
@@ -20,12 +23,24 @@ export function PublicProfile({
   }, [userId]);
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <section
+    <motion.div
+      className="modal-backdrop"
+      role="presentation"
+      onClick={onClose}
+      initial={reduce ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={reduce ? { duration: 0 } : { duration: 0.16 }}
+    >
+      <motion.section
         aria-modal="true"
         className="public-profile"
         role="dialog"
         onClick={(e) => e.stopPropagation()}
+        initial={reduce ? false : { opacity: 0, y: 18 }}
+        animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0 }}
+        exit={reduce ? { opacity: 0 } : { opacity: 0, y: 10 }}
+        transition={reduce ? { duration: 0 } : spring}
       >
         {profile ? (
           <>
@@ -62,7 +77,7 @@ export function PublicProfile({
         <button className="primary-button wide" type="button" onClick={onClose}>
           Yopish
         </button>
-      </section>
-    </div>
+      </motion.section>
+    </motion.div>
   );
 }

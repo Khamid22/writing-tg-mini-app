@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { JSX } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { BookOpen, CreditCard, LayoutDashboard, ListFilter, LogOut, Menu, Plus, Settings, Users, X } from "lucide-react";
 import type { AdminSummary, AdminWord } from "./adminApi";
 import {
@@ -18,6 +19,7 @@ import { UserDetailModal } from "./admin/UserDetailModal";
 import { UsersTab } from "./admin/UsersTab";
 import { WordEditorModal } from "./admin/WordEditorModal";
 import { WordsTab } from "./admin/WordsTab";
+import { AnimatedScreen, tapScale } from "./uiMotion";
 
 const SESSION_KEY = "vocabhelper-admin-session";
 
@@ -109,6 +111,33 @@ export function AdminApp(): JSX.Element {
 
   if (!token) return <AdminLogin onSuccess={login} />;
 
+  function activeAdminScreen(): JSX.Element | null {
+    if (tab === "dashboard") {
+      return <DashboardTab summary={summary} onOpenWords={() => setTab("words")} onEditWord={openEditor} />;
+    }
+    if (tab === "words") {
+      return <WordsTab token={token} onEdit={openEditor} onDisable={handleDisableWord} reloadKey={wordsReloadKey} />;
+    }
+    if (tab === "users") {
+      return <UsersTab token={token} onOpenDetail={setDetailUserId} onSetTier={handleSetTier} />;
+    }
+    if (tab === "payments") {
+      return <PaymentsTab token={token} onAction={handlePaymentAction} reloadKey={paymentsReloadKey} />;
+    }
+    if (tab === "settings") {
+      return <SettingsTab token={token} />;
+    }
+    if (tab === "reading" || tab === "writing") {
+      return (
+        <section className="admin-panel admin-placeholder admin-fade-in">
+          <h2>{NAV.find((n) => n.tab === tab)?.label}</h2>
+          <p>Bu bo'lim keyingi bosqich uchun joy tayyorlab qo'yildi.</p>
+        </section>
+      );
+    }
+    return null;
+  }
+
   return (
     <div className="admin-shell" data-drawer-open={drawerOpen}>
       {drawerOpen ? (
@@ -130,15 +159,16 @@ export function AdminApp(): JSX.Element {
         </div>
         <nav className="admin-nav" aria-label="Admin navigation">
           {NAV.map(({ tab: t, label, icon: Icon }) => (
-            <button
+            <motion.button
               key={t}
               type="button"
               data-active={tab === t}
               onClick={() => { setTab(t); setDrawerOpen(false); }}
+              whileTap={tapScale()}
             >
               <Icon size={17} />
               <span>{label}</span>
-            </button>
+            </motion.button>
           ))}
         </nav>
         <button className="admin-logout" type="button" onClick={logout}>
@@ -177,34 +207,9 @@ export function AdminApp(): JSX.Element {
 
         {message ? <div className="admin-message">{message}</div> : null}
 
-        {tab === "dashboard" && (
-          <DashboardTab
-            summary={summary}
-            onOpenWords={() => setTab("words")}
-            onEditWord={openEditor}
-          />
-        )}
-        {tab === "words" && (
-          <WordsTab
-            token={token}
-            onEdit={openEditor}
-            onDisable={handleDisableWord}
-            reloadKey={wordsReloadKey}
-          />
-        )}
-        {tab === "users" && (
-          <UsersTab token={token} onOpenDetail={setDetailUserId} onSetTier={handleSetTier} />
-        )}
-        {tab === "payments" && (
-          <PaymentsTab token={token} onAction={handlePaymentAction} reloadKey={paymentsReloadKey} />
-        )}
-        {tab === "settings" && <SettingsTab token={token} />}
-        {(tab === "reading" || tab === "writing") && (
-          <section className="admin-panel admin-placeholder admin-fade-in">
-            <h2>{NAV.find((n) => n.tab === tab)?.label}</h2>
-            <p>Bu bo'lim keyingi bosqich uchun joy tayyorlab qo'yildi.</p>
-          </section>
-        )}
+        <AnimatePresence mode="wait">
+          <AnimatedScreen key={tab}>{activeAdminScreen()}</AnimatedScreen>
+        </AnimatePresence>
       </main>
 
       <UserDetailModal

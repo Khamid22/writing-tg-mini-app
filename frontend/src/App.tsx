@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { JSX } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { BarChart3, BookMarked, BookOpen, Crown, GraduationCap, Medal, Menu, User, X } from "lucide-react";
 import { applyApiUser, authenticateTelegram, clearStoredToken, getStoredToken } from "./api";
 import { DAILY_FREE_LIMIT } from "./data";
@@ -14,6 +15,7 @@ import { LeaderboardScreen } from "./screens/LeaderboardScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
 import { CoursesScreen } from "./screens/CoursesScreen";
 import { PublicProfile } from "./components/PublicProfile";
+import { AnimatedScreen, tapScale } from "./uiMotion";
 
 type Tab = "learn" | "test" | "courses" | "dashboard" | "leaders" | "profile";
 type EntryScreen = "landing" | "register" | "app";
@@ -92,6 +94,50 @@ export function App(): JSX.Element {
 
   const currentLabel = navItems.find((n) => n.tab === activeTab)?.label ?? "Yangi so'zlar";
 
+  function activeScreen(): JSX.Element | null {
+    if (activeTab === "learn") {
+      return <LearnScreen state={state} updateState={updateState} apiToken={apiToken} />;
+    }
+    if (activeTab === "test") {
+      return <TestScreen state={state} updateState={updateState} apiToken={apiToken} />;
+    }
+    if (activeTab === "courses") {
+      return (
+        <CoursesScreen
+          apiToken={apiToken}
+          activeCollection={state.activeCollection ?? null}
+          onSelect={(collection) => {
+            updateState((current) => ({ ...current, activeCollection: collection }));
+            setActiveTab("learn");
+          }}
+        />
+      );
+    }
+    if (activeTab === "dashboard") {
+      return <DashboardScreen state={state} apiToken={apiToken} />;
+    }
+    if (activeTab === "leaders") {
+      return <LeaderboardScreen state={state} onSelectUser={setSelectedUserId} apiToken={apiToken} />;
+    }
+    if (activeTab === "profile") {
+      return (
+        <ProfileScreen
+          state={state}
+          onLogout={() => {
+            clearState();
+            clearStoredToken();
+            localStorage.removeItem("uzbek-words-onboarded");
+            setApiToken(null);
+            setState(loadState());
+            setActiveTab("learn");
+            setEntryScreen("landing");
+          }}
+        />
+      );
+    }
+    return null;
+  }
+
   return (
     <div className="app-shell" data-drawer-open={drawerOpen}>
       <header className="topbar">
@@ -115,47 +161,16 @@ export function App(): JSX.Element {
       </header>
 
       <main className="screen">
-        {activeTab === "learn" ? (
-          <LearnScreen state={state} updateState={updateState} apiToken={apiToken} />
-        ) : null}
-        {activeTab === "test" ? (
-          <TestScreen state={state} updateState={updateState} apiToken={apiToken} />
-        ) : null}
-        {activeTab === "courses" ? (
-          <CoursesScreen
-            apiToken={apiToken}
-            activeCollection={state.activeCollection ?? null}
-            onSelect={(collection) => {
-              updateState((current) => ({ ...current, activeCollection: collection }));
-              setActiveTab("learn");
-            }}
-          />
-        ) : null}
-        {activeTab === "dashboard" ? (
-          <DashboardScreen state={state} apiToken={apiToken} />
-        ) : null}
-        {activeTab === "leaders" ? (
-          <LeaderboardScreen state={state} onSelectUser={setSelectedUserId} apiToken={apiToken} />
-        ) : null}
-        {activeTab === "profile" ? (
-          <ProfileScreen
-            state={state}
-            onLogout={() => {
-              clearState();
-              clearStoredToken();
-              localStorage.removeItem("uzbek-words-onboarded");
-              setApiToken(null);
-              setState(loadState());
-              setActiveTab("learn");
-              setEntryScreen("landing");
-            }}
-          />
-        ) : null}
+        <AnimatePresence mode="wait">
+          <AnimatedScreen key={activeTab}>{activeScreen()}</AnimatedScreen>
+        </AnimatePresence>
       </main>
 
-      {selectedUserId !== null ? (
-        <PublicProfile userId={selectedUserId} onClose={() => setSelectedUserId(null)} />
-      ) : null}
+      <AnimatePresence>
+        {selectedUserId !== null ? (
+          <PublicProfile userId={selectedUserId} onClose={() => setSelectedUserId(null)} />
+        ) : null}
+      </AnimatePresence>
 
       {drawerOpen ? (
         <div className="app-nav-backdrop" role="presentation" onClick={() => setDrawerOpen(false)} />
@@ -177,16 +192,17 @@ export function App(): JSX.Element {
         {navItems.map((item) => {
           const Icon = item.icon;
           return (
-            <button
+            <motion.button
               className="nav-button"
               data-active={item.tab === activeTab}
               key={item.tab}
               onClick={() => { setActiveTab(item.tab); setDrawerOpen(false); }}
               type="button"
+              whileTap={tapScale()}
             >
               <Icon size={19} />
               <span>{item.label}</span>
-            </button>
+            </motion.button>
           );
         })}
       </nav>
