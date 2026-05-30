@@ -45,6 +45,7 @@ export type TodayWordResponse = {
 };
 
 export type WordEvent = "seen" | "listened" | "flipped" | "learned" | "practice_later" | "remembered" | "forgot";
+export type WordReportReason = "too_difficult" | "wrong_meaning" | "audio_broken" | "bad_example" | "already_know";
 
 export type WordEventResponse = {
   ok: boolean;
@@ -210,6 +211,13 @@ export async function sendWordEvent(wordId: number, event: WordEvent): Promise<W
   return apiFetch<WordEventResponse>(`/api/mini/words/${wordId}/events`, {
     method: "POST",
     body: JSON.stringify({ event }),
+  });
+}
+
+export async function reportWord(wordId: number, reason: WordReportReason, details = ""): Promise<{ ok: boolean; report_id: number }> {
+  return apiFetch<{ ok: boolean; report_id: number }>(`/api/mini/words/${wordId}/reports`, {
+    method: "POST",
+    body: JSON.stringify({ reason, details }),
   });
 }
 

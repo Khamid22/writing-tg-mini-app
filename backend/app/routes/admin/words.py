@@ -11,9 +11,20 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.db.session import get_db
-from app.models import LearnerDailyUsage, LearnerProgress, LearnerUser, PaymentRequest, PaymentStatus, QuizAttempt, WordItem
+from app.models import (
+    LearnerDailyUsage,
+    LearnerProgress,
+    LearnerUser,
+    PaymentRequest,
+    PaymentStatus,
+    QuizAttempt,
+    WordItem,
+    WordQualityStatus,
+    WordReport,
+    WordReportStatus,
+)
 from app.routes.admin.auth import require_admin
-from app.routes.admin.serializers import serialize_word
+from app.routes.admin.serializers import serialize_word, serialize_word_report
 from app.services.pronunciation import apply_pronunciation, lookup_pronunciation
 from app.services.word_import import import_rows, parse_csv, parse_xlsx
 
@@ -37,7 +48,9 @@ class WordPayload(BaseModel):
     writing_prompt: str = ""
     difficulty_order: int = Field(default=0, ge=0)
     audio_url: str | None = Field(default=None, max_length=500)
-    is_active: bool = True
+    audio_status: str = Field(default="pending", max_length=32)
+    quality_status: Literal["draft", "review", "published", "archived"] = "review"
+    is_active: bool = False
 
 
 class WordPatch(BaseModel):
@@ -57,12 +70,24 @@ class WordPatch(BaseModel):
     writing_prompt: str | None = None
     difficulty_order: int | None = Field(default=None, ge=0)
     audio_url: str | None = Field(default=None, max_length=500)
+    audio_status: str | None = Field(default=None, max_length=32)
+    quality_status: Literal["draft", "review", "published", "archived"] | None = None
     is_active: bool | None = None
 
 
 class ImportUrlRequest(BaseModel):
     url: str = Field(min_length=1)
-    default_active: bool = True
+    default_active: bool = False
+
+
+class ReportPatch(BaseModel):
+    status: Literal["open", "resolved", "dismissed"]
+
+
+def sync_quality(word: WordItem) -> None:
+    word.is_active = word.quality_status == WordQualityStatus.PUBLISHED.value
+    if word.audio_url and word.audio_status == "pending":
+        word.audio_status = "ready"
 
 
 @router.get("/summary")
@@ -72,7 +97,12 @@ def summary(db: Session = Depends(get_db)) -> dict:
     today_start = datetime.combine(today, time.min, tzinfo=timezone.utc)
 
     total = db.scalar(select(func.count(WordItem.id))) or 0
-    published = db.scalar(select(func.count(WordItem.id)).where(WordItem.is_active.is_(True))) or 0
+    published = db.scalar(
+        select(func.count(WordItem.id)).where(
+            WordItem.is_active.is_(True),
+            WordItem.quality_status == WordQualityStatus.PUBLISHED.value,
+        )
+    ) or 0
     total_users = db.scalar(select(func.count(LearnerUser.id))) or 0
     premium = db.scalar(select(func.count(LearnerUser.id)).where(LearnerUser.tier == "paid")) or 0
     pending = db.scalar(
@@ -109,15 +139,17 @@ def summary(db: Session = Depends(get_db)) -> dict:
     quiz_accuracy = round((correct / answered) * 100) if answered else 0
 
     missing_audio = db.scalar(
-        select(func.count(WordItem.id)).where(WordItem.is_active.is_(True), or_(WordItem.audio_url.is_(None), WordItem.audio_url == ""))
+        select(func.count(WordItem.id)).where(WordItem.quality_status == WordQualityStatus.PUBLISHED.value, or_(WordItem.audio_url.is_(None), WordItem.audio_url == ""))
     ) or 0
     missing_writing_prompt = db.scalar(
-        select(func.count(WordItem.id)).where(WordItem.is_active.is_(True), WordItem.writing_prompt == "")
+        select(func.count(WordItem.id)).where(WordItem.quality_status == WordQualityStatus.PUBLISHED.value, WordItem.writing_prompt == "")
     ) or 0
+    open_reports = db.scalar(select(func.count(WordReport.id)).where(WordReport.status == WordReportStatus.OPEN.value)) or 0
+    review_words = db.scalar(select(func.count(WordItem.id)).where(WordItem.quality_status == WordQualityStatus.REVIEW.value)) or 0
 
     topic_rows = db.execute(
         select(WordItem.topic, func.count(WordItem.id))
-        .where(WordItem.is_active.is_(True))
+        .where(WordItem.quality_status == WordQualityStatus.PUBLISHED.value)
         .group_by(WordItem.topic)
         .order_by(func.count(WordItem.id).desc(), WordItem.topic.asc())
         .limit(5)
@@ -153,6 +185,8 @@ def summary(db: Session = Depends(get_db)) -> dict:
             "quiz_accuracy": quiz_accuracy,
             "missing_audio": missing_audio,
             "missing_writing_prompt": missing_writing_prompt,
+            "open_reports": open_reports,
+            "review_words": review_words,
         },
         "topic_coverage": [{"topic": topic or "Untitled", "count": int(count)} for topic, count in topic_rows],
         "weak_words": [
@@ -171,7 +205,7 @@ def summary(db: Session = Depends(get_db)) -> dict:
 @router.get("/words")
 def list_words(
     search: str = "",
-    status: Literal["all", "published", "draft"] = "all",
+    status: Literal["all", "published", "review", "draft", "archived", "reported", "missing_audio"] = "all",
     level: str = "",
     word_type: str = "",
     limit: int = Query(default=100, ge=1, le=300),
@@ -189,9 +223,13 @@ def list_words(
             WordItem.tags.ilike(like),
         ))
     if status == "published":
-        query = query.where(WordItem.is_active.is_(True))
-    elif status == "draft":
-        query = query.where(WordItem.is_active.is_(False))
+        query = query.where(WordItem.is_active.is_(True), WordItem.quality_status == WordQualityStatus.PUBLISHED.value)
+    elif status in {"review", "draft", "archived"}:
+        query = query.where(WordItem.quality_status == status)
+    elif status == "reported":
+        query = query.join(WordReport, WordReport.word_item_id == WordItem.id).where(WordReport.status == WordReportStatus.OPEN.value)
+    elif status == "missing_audio":
+        query = query.where(or_(WordItem.audio_url.is_(None), WordItem.audio_url == ""))
     if level.strip():
         query = query.where(WordItem.level == level.strip())
     if word_type.strip():
@@ -210,6 +248,7 @@ def list_words(
 @router.post("/words")
 def create_word(payload: WordPayload, db: Session = Depends(get_db)) -> dict:
     word = WordItem(**payload.model_dump())
+    sync_quality(word)
     db.add(word)
     db.commit()
     db.refresh(word)
@@ -223,6 +262,9 @@ def update_word(word_id: int, payload: WordPatch, db: Session = Depends(get_db))
         raise HTTPException(status_code=404, detail="Word not found")
     for key, value in payload.model_dump(exclude_unset=True).items():
         setattr(word, key, value)
+    if payload.is_active is not None and payload.quality_status is None:
+        word.quality_status = WordQualityStatus.PUBLISHED.value if word.is_active else WordQualityStatus.DRAFT.value
+    sync_quality(word)
     db.commit()
     db.refresh(word)
     return serialize_word(word)
@@ -234,6 +276,7 @@ def disable_word(word_id: int, db: Session = Depends(get_db)) -> dict:
     if not word:
         raise HTTPException(status_code=404, detail="Word not found")
     word.is_active = False
+    word.quality_status = WordQualityStatus.DRAFT.value
     db.commit()
     db.refresh(word)
     return serialize_word(word)
@@ -247,6 +290,7 @@ async def enrich_word_pronunciation(word_id: int, db: Session = Depends(get_db))
     result = await lookup_pronunciation(word.word)
     changed = apply_pronunciation(word, result)
     if changed:
+        word.audio_status = "ready"
         db.commit()
         db.refresh(word)
     return {"word": serialize_word(word), "updated": changed, "source": result.source}
@@ -260,7 +304,7 @@ async def enrich_missing_pronunciations(
     words = list(
         db.scalars(
             select(WordItem)
-            .where(WordItem.is_active.is_(True), or_(WordItem.audio_url.is_(None), WordItem.audio_url == ""))
+            .where(WordItem.quality_status == WordQualityStatus.PUBLISHED.value, or_(WordItem.audio_url.is_(None), WordItem.audio_url == ""))
             .order_by(WordItem.created_at.desc(), WordItem.id.desc())
             .limit(limit)
         )
@@ -271,8 +315,10 @@ async def enrich_missing_pronunciations(
     for word in words:
         result = await lookup_pronunciation(word.word)
         if apply_pronunciation(word, result):
+            word.audio_status = "ready"
             updated += 1
         else:
+            word.audio_status = "missing"
             not_found.append(word.word)
     db.commit()
     return {
@@ -286,7 +332,7 @@ async def enrich_missing_pronunciations(
 @router.post("/words/import-file")
 async def import_file(
     upload: UploadFile = File(...),
-    default_active: bool = Form(default=True),
+    default_active: bool = Form(default=False),
     db: Session = Depends(get_db),
 ) -> dict:
     content = await upload.read()
@@ -311,3 +357,28 @@ async def import_url(payload: ImportUrlRequest, db: Session = Depends(get_db)) -
     except httpx.HTTPError as exc:
         raise HTTPException(status_code=400, detail="Could not read Google Sheets CSV link") from exc
     return import_rows(parse_csv(response.content), payload.default_active, db)
+
+
+@router.get("/word-reports")
+def list_word_reports(
+    status: Literal["open", "resolved", "dismissed", "all"] = "open",
+    limit: int = Query(default=100, ge=1, le=300),
+    db: Session = Depends(get_db),
+) -> dict:
+    query = select(WordReport).join(WordItem, WordItem.id == WordReport.word_item_id)
+    if status != "all":
+        query = query.where(WordReport.status == status)
+    reports = db.scalars(query.order_by(WordReport.created_at.desc()).limit(limit))
+    return {"items": [serialize_word_report(report) for report in reports]}
+
+
+@router.patch("/word-reports/{report_id}")
+def update_word_report(report_id: int, payload: ReportPatch, db: Session = Depends(get_db)) -> dict:
+    report = db.get(WordReport, report_id)
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    report.status = payload.status
+    report.resolved_at = datetime.now(timezone.utc) if payload.status != WordReportStatus.OPEN.value else None
+    db.commit()
+    db.refresh(report)
+    return serialize_word_report(report)

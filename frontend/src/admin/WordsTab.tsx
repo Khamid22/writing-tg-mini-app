@@ -71,7 +71,11 @@ export function WordsTab({
           <select value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="all">All</option>
             <option value="published">Published</option>
+            <option value="review">Review</option>
             <option value="draft">Draft</option>
+            <option value="reported">Reported</option>
+            <option value="missing_audio">Missing audio</option>
+            <option value="archived">Archived</option>
           </select>
           <select value={level} onChange={(e) => setLevel(e.target.value)}>
             <option value="">All levels</option>
@@ -91,7 +95,7 @@ export function WordsTab({
               <strong>{word.word}</strong>
               <span>{word.uzbek_definition}</span>
               <span>{word.topic || word.level}</span>
-              <span>{word.is_active ? "Published" : "Draft"}</span>
+              <span>{word.quality_status}</span>
               <span className="admin-row-actions">
                 <button type="button" title="Fill pronunciation" onClick={() => void enrichOne(word)}><Headphones size={15} /></button>
                 <button type="button" title="Edit" onClick={() => onEdit(word)}><Edit3 size={15} /></button>

@@ -9,7 +9,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import LearnerDailyUsage, LearnerProgress, LearnerUser, PointsEvent, ProgressStatus, QuizAnswer, QuizAttempt, WordItem
+from app.models import LearnerDailyUsage, LearnerProgress, LearnerUser, PointsEvent, ProgressStatus, QuizAnswer, QuizAttempt, WordItem, WordQualityStatus
 from app.services.limits import get_or_create_usage
 
 
@@ -44,6 +44,8 @@ def start_quiz(
         select(WordItem, LearnerProgress.mastery_score)
         .join(LearnerProgress, LearnerProgress.word_item_id == WordItem.id)
         .where(
+            WordItem.is_active.is_(True),
+            WordItem.quality_status == WordQualityStatus.PUBLISHED.value,
             LearnerProgress.user_id == user.id,
             LearnerProgress.status.in_([ProgressStatus.LEARNED.value, ProgressStatus.MASTERED.value]),
         )
@@ -54,7 +56,10 @@ def start_quiz(
     if not candidates:
         return QuizAttempt(user_id=user.id, mode=mode, total_questions=0), []
 
-    distractor_q = select(WordItem).where(WordItem.is_active.is_(True))
+    distractor_q = select(WordItem).where(
+        WordItem.is_active.is_(True),
+        WordItem.quality_status == WordQualityStatus.PUBLISHED.value,
+    )
     if collection:
         distractor_q = distractor_q.where(WordItem.collection == collection)
     all_words = list(db.scalars(distractor_q))
@@ -211,4 +216,3 @@ def complete_quiz(db: Session, user: LearnerUser, attempt_id: int) -> QuizAttemp
         db.commit()
         db.refresh(attempt)
     return attempt
-

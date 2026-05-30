@@ -30,6 +30,19 @@ class PaymentStatus(str, Enum):
     EXPIRED = "expired"
 
 
+class WordQualityStatus(str, Enum):
+    DRAFT = "draft"
+    REVIEW = "review"
+    PUBLISHED = "published"
+    ARCHIVED = "archived"
+
+
+class WordReportStatus(str, Enum):
+    OPEN = "open"
+    RESOLVED = "resolved"
+    DISMISSED = "dismissed"
+
+
 class LearnerUser(Base):
     __tablename__ = "learner_users"
 
@@ -73,10 +86,29 @@ class WordItem(Base):
     writing_prompt: Mapped[str] = mapped_column(Text, default="")
     difficulty_order: Mapped[int] = mapped_column(Integer, default=0, index=True)
     audio_url: Mapped[str | None] = mapped_column(String(500))
+    audio_status: Mapped[str] = mapped_column(String(32), default="pending", index=True)
+    quality_status: Mapped[str] = mapped_column(String(24), default=WordQualityStatus.PUBLISHED.value, index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     progress: Mapped[list["LearnerProgress"]] = relationship(back_populates="word")
+    reports: Mapped[list["WordReport"]] = relationship(back_populates="word", cascade="all, delete-orphan")
+
+
+class WordReport(Base):
+    __tablename__ = "word_reports"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("learner_users.id"), index=True)
+    word_item_id: Mapped[int] = mapped_column(ForeignKey("word_items.id"), index=True)
+    reason: Mapped[str] = mapped_column(String(80), index=True)
+    details: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String(24), default=WordReportStatus.OPEN.value, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    user: Mapped[LearnerUser] = relationship()
+    word: Mapped[WordItem] = relationship(back_populates="reports")
 
 
 class LearnerProgress(Base):

@@ -6,7 +6,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.models import WordItem
+from app.models import WordItem, WordQualityStatus
 
 REQUIRED_FIELDS = ("english_definition", "uzbek_definition", "english_example", "uzbek_example")
 ALIASES: dict[str, tuple[str, ...]] = {
@@ -17,6 +17,7 @@ ALIASES: dict[str, tuple[str, ...]] = {
     "word_type": ("word_type", "type"),
 }
 TRUTHY = {"1", "true", "yes", "y", "published", "active"}
+QUALITY_STATUSES = {status.value for status in WordQualityStatus}
 
 
 def _clean(value: Any) -> str:
@@ -40,6 +41,13 @@ def _to_int(value: Any, default: int = 0) -> int:
         return max(0, int(float(_clean(value))))
     except ValueError:
         return default
+
+
+def _quality_status(row: dict, default_active: bool) -> str:
+    explicit = _clean(row.get("quality_status") or row.get("status")).lower()
+    if explicit in QUALITY_STATUSES:
+        return explicit
+    return WordQualityStatus.PUBLISHED.value if default_active else WordQualityStatus.REVIEW.value
 
 
 def parse_csv(content: bytes) -> list[dict]:
@@ -72,6 +80,9 @@ def row_to_word(row: dict, default_active: bool) -> tuple[WordItem | None, str |
     if missing:
         return None, f"{word_text}: missing {', '.join(missing)}"
 
+    quality_status = _quality_status(normalized, default_active)
+    is_active = quality_status == WordQualityStatus.PUBLISHED.value
+
     return (
         WordItem(
             word=word_text,
@@ -86,7 +97,9 @@ def row_to_word(row: dict, default_active: bool) -> tuple[WordItem | None, str |
             writing_prompt=_clean(normalized.get("writing_prompt")),
             difficulty_order=_to_int(normalized.get("difficulty_order")),
             audio_url=_clean(normalized.get("audio_url")) or None,
-            is_active=_to_bool(normalized.get("is_active"), default_active),
+            audio_status="ready" if _clean(normalized.get("audio_url")) else "pending",
+            quality_status=quality_status,
+            is_active=is_active,
             **values,
         ),
         None,

@@ -3,7 +3,7 @@ import type { AdminSummary, AdminWord } from "../adminApi";
 import { Metric } from "../components/Metric";
 
 function statusLabel(word: AdminWord): string {
-  return word.is_active ? "Published" : "Draft";
+  return word.quality_status;
 }
 
 export function DashboardTab({
@@ -18,7 +18,8 @@ export function DashboardTab({
   const stats = summary?.stats;
   const actionItems = [
     { label: "Payment approvals", value: stats?.pending_payments ?? 0 },
-    { label: "Draft words", value: stats?.draft_words ?? 0 },
+    { label: "Words in review", value: stats?.review_words ?? 0 },
+    { label: "Open reports", value: stats?.open_reports ?? 0 },
     { label: "Words without audio", value: stats?.missing_audio ?? 0 },
     { label: "Words without writing prompt", value: stats?.missing_writing_prompt ?? 0 },
   ];

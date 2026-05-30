@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.db.session import get_db
 from app.dependencies import current_user
-from app.models import LearnerProgress, LearnerTier, LearnerUser, ProgressStatus, WordItem
+from app.models import LearnerProgress, LearnerTier, LearnerUser, ProgressStatus, WordItem, WordQualityStatus
 
 router = APIRouter(prefix="/api/mini/collections", tags=["collections"])
 
@@ -43,6 +43,7 @@ def list_collections(user: LearnerUser = Depends(current_user), db: Session = De
         )
         .outerjoin(learned_subq, learned_subq.c.collection == WordItem.collection)
         .where(WordItem.is_active.is_(True))
+        .where(WordItem.quality_status == WordQualityStatus.PUBLISHED.value)
         .group_by(WordItem.collection)
         .order_by(WordItem.collection.asc())
     ).all()

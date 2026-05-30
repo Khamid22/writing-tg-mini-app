@@ -16,6 +16,8 @@ export type AdminWord = {
   writing_prompt: string;
   difficulty_order: number;
   audio_url: string | null;
+  audio_status: string;
+  quality_status: "draft" | "review" | "published" | "archived";
   is_active: boolean;
   created_at: string | null;
 };
@@ -37,6 +39,8 @@ export type AdminWordInput = {
   writing_prompt: string;
   difficulty_order: number;
   audio_url: string | null;
+  audio_status: string;
+  quality_status: "draft" | "review" | "published" | "archived";
   is_active: boolean;
 };
 
@@ -57,6 +61,8 @@ export type AdminSummary = {
     quiz_accuracy: number;
     missing_audio: number;
     missing_writing_prompt: number;
+    open_reports: number;
+    review_words: number;
   };
   topic_coverage: Array<{ topic: string; count: number }>;
   weak_words: Array<{ word: string; level: string; answered: number; accuracy: number }>;
@@ -144,6 +150,17 @@ export type AdminPronunciationResponse = {
   not_found_count: number;
 };
 
+export type AdminWordReport = {
+  id: number;
+  reason: string;
+  details: string;
+  status: "open" | "resolved" | "dismissed";
+  created_at: string | null;
+  resolved_at: string | null;
+  word: AdminWord | null;
+  user: { id: number; display_name: string; username: string | null } | null;
+};
+
 function apiBaseUrl(): string {
   const configured = import.meta.env.VITE_API_BASE_URL as string | undefined;
   if (configured) return configured.replace(/\/$/, "");
@@ -198,6 +215,24 @@ export async function fetchAdminWords(
   if (filters.wordType) params.set("word_type", filters.wordType);
   const query = params.toString();
   return adminFetch<{ items: AdminWord[] }>(`/api/admin/words${query ? `?${query}` : ""}`, adminToken);
+}
+
+export async function fetchAdminWordReports(
+  adminToken: string,
+  status: "open" | "resolved" | "dismissed" | "all" = "open",
+): Promise<{ items: AdminWordReport[] }> {
+  return adminFetch<{ items: AdminWordReport[] }>(`/api/admin/word-reports?status=${status}`, adminToken);
+}
+
+export async function updateAdminWordReport(
+  adminToken: string,
+  reportId: number,
+  status: "open" | "resolved" | "dismissed",
+): Promise<AdminWordReport> {
+  return adminFetch<AdminWordReport>(`/api/admin/word-reports/${reportId}`, adminToken, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
 }
 
 export async function createAdminWord(adminToken: string, payload: AdminWordInput): Promise<AdminWord> {

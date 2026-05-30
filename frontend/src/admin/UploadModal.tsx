@@ -17,7 +17,7 @@ export function UploadModal({
   const [mode, setMode] = useState<"file" | "sheets">("file");
   const [file, setFile] = useState<File | null>(null);
   const [url, setUrl] = useState("");
-  const [publish, setPublish] = useState(true);
+  const [publish, setPublish] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -60,12 +60,12 @@ export function UploadModal({
       )}
       <label className="admin-check admin-upload-check">
         <input type="checkbox" checked={publish} onChange={(e) => setPublish(e.target.checked)} />
-        Publish uploaded words
+        Publish immediately
       </label>
       <p className="muted">
         Columns: word, word_type, phonetic, english_definition, uzbek_definition, english_example,
         uzbek_example, level, topic, collection, tags, collocations, common_mistake, writing_prompt,
-        difficulty_order, is_active.
+        difficulty_order, audio_url, quality_status. By default uploads go to review.
       </p>
       {error ? <div className="admin-message">{error}</div> : null}
       <div className="admin-actions">

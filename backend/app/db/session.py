@@ -50,6 +50,8 @@ def ensure_schema_compatibility() -> None:
             "common_mistake": "TEXT DEFAULT '' NOT NULL",
             "writing_prompt": "TEXT DEFAULT '' NOT NULL",
             "difficulty_order": "INTEGER DEFAULT 0 NOT NULL",
+            "audio_status": "VARCHAR(32) DEFAULT 'pending' NOT NULL",
+            "quality_status": "VARCHAR(24) DEFAULT 'published' NOT NULL",
         }
         postgres_columns = {
             "topic": "VARCHAR(120) DEFAULT 'General' NOT NULL",
@@ -59,11 +61,19 @@ def ensure_schema_compatibility() -> None:
             "common_mistake": "TEXT DEFAULT '' NOT NULL",
             "writing_prompt": "TEXT DEFAULT '' NOT NULL",
             "difficulty_order": "INTEGER DEFAULT 0 NOT NULL",
+            "audio_status": "VARCHAR(32) DEFAULT 'pending' NOT NULL",
+            "quality_status": "VARCHAR(24) DEFAULT 'published' NOT NULL",
         }
         column_defs = sqlite_columns if settings.resolved_database_url.startswith("sqlite") else postgres_columns
         for name, definition in column_defs.items():
             if name not in word_columns:
                 connection.execute(text(f"ALTER TABLE word_items ADD COLUMN {name} {definition}"))
+
+        if "quality_status" not in word_columns:
+            connection.execute(text("UPDATE word_items SET quality_status = 'draft' WHERE is_active = false"))
+            connection.execute(text("UPDATE word_items SET quality_status = 'published' WHERE is_active = true"))
+        if "audio_status" not in word_columns:
+            connection.execute(text("UPDATE word_items SET audio_status = 'ready' WHERE audio_url IS NOT NULL AND audio_url <> ''"))
 
 
 def get_db() -> Generator[Session, None, None]:

@@ -3,11 +3,11 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.models import LearnerProgress, LearnerTier, LearnerUser, PointsEvent, ProgressStatus, WordItem
+from app.models import LearnerProgress, LearnerTier, LearnerUser, PointsEvent, ProgressStatus, WordItem, WordQualityStatus
 from app.services.limits import get_or_create_usage, today_for_user
 
 
@@ -30,6 +30,32 @@ REVIEW_EVENTS = {"remembered", "forgot"}
 KNOWN_EVENTS = {"seen", "listened", "flipped", "learned", "practice_later"} | REVIEW_EVENTS
 
 
+LEVEL_ORDER = case(
+    (WordItem.level == "A1", 1),
+    (WordItem.level == "A2", 2),
+    (WordItem.level == "B1", 3),
+    (WordItem.level == "B2", 4),
+    (WordItem.level == "C1", 5),
+    else_=6,
+)
+
+
+def allowed_levels_for_user(db: Session, user: LearnerUser) -> list[str]:
+    learned_count = db.scalar(
+        select(func.count(LearnerProgress.id)).where(
+            LearnerProgress.user_id == user.id,
+            LearnerProgress.status.in_(LEARNED_STATUSES),
+        )
+    ) or 0
+    if learned_count < 50:
+        return ["A1", "A2"]
+    if learned_count < 150:
+        return ["A1", "A2", "B1"]
+    if learned_count < 300:
+        return ["A1", "A2", "B1", "B2"]
+    return ["A1", "A2", "B1", "B2", "C1"]
+
+
 def next_word_for_user(
     db: Session,
     user: LearnerUser,
@@ -41,10 +67,16 @@ def next_word_for_user(
     touched_ids = select(LearnerProgress.word_item_id).where(
         LearnerProgress.user_id == user.id,
     )
-    new_q = select(WordItem).where(WordItem.is_active.is_(True), WordItem.id.not_in(touched_ids))
+    published_filter = (
+        WordItem.is_active.is_(True),
+        WordItem.quality_status == WordQualityStatus.PUBLISHED.value,
+    )
+    new_q = select(WordItem).where(*published_filter, WordItem.id.not_in(touched_ids))
     if collection:
         new_q = new_q.where(WordItem.collection == collection)
-    new_word = db.scalar(new_q.order_by(WordItem.id.asc()).limit(1))
+    else:
+        new_q = new_q.where(WordItem.level.in_(allowed_levels_for_user(db, user)))
+    new_word = db.scalar(new_q.order_by(LEVEL_ORDER.asc(), WordItem.difficulty_order.asc(), WordItem.id.asc()).limit(1))
     if new_word:
         return new_word, False
 
@@ -53,7 +85,7 @@ def next_word_for_user(
             select(WordItem)
             .join(LearnerProgress, LearnerProgress.word_item_id == WordItem.id)
             .where(
-                WordItem.is_active.is_(True),
+                *published_filter,
                 LearnerProgress.user_id == user.id,
                 LearnerProgress.status.in_(statuses),
             )

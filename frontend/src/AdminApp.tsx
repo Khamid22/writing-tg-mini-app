@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { JSX } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { BookOpen, CreditCard, LayoutDashboard, ListFilter, LogOut, Menu, Plus, Settings, Users, X } from "lucide-react";
+import { BookOpen, CreditCard, Flag, LayoutDashboard, ListFilter, LogOut, Menu, Plus, Settings, Users, X } from "lucide-react";
 import type { AdminSummary, AdminWord } from "./adminApi";
 import {
   approveAdminPayment,
@@ -13,6 +13,7 @@ import {
 import { AdminLogin } from "./admin/AdminLogin";
 import { DashboardTab } from "./admin/DashboardTab";
 import { PaymentsTab } from "./admin/PaymentsTab";
+import { QualityTab } from "./admin/QualityTab";
 import { SettingsTab } from "./admin/SettingsTab";
 import { UploadModal } from "./admin/UploadModal";
 import { UserDetailModal } from "./admin/UserDetailModal";
@@ -23,11 +24,12 @@ import { AnimatedScreen, tapScale } from "./uiMotion";
 
 const SESSION_KEY = "vocabhelper-admin-session";
 
-type Tab = "dashboard" | "words" | "reading" | "writing" | "users" | "payments" | "settings";
+type Tab = "dashboard" | "words" | "quality" | "reading" | "writing" | "users" | "payments" | "settings";
 
 const NAV: Array<{ tab: Tab; label: string; icon: typeof BookOpen }> = [
   { tab: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { tab: "words", label: "Words", icon: BookOpen },
+  { tab: "quality", label: "Quality", icon: Flag },
   { tab: "reading", label: "Reading", icon: ListFilter },
   { tab: "writing", label: "Writing", icon: ListFilter },
   { tab: "users", label: "Users", icon: Users },
@@ -117,6 +119,9 @@ export function AdminApp(): JSX.Element {
     }
     if (tab === "words") {
       return <WordsTab token={token} onEdit={openEditor} onDisable={handleDisableWord} reloadKey={wordsReloadKey} />;
+    }
+    if (tab === "quality") {
+      return <QualityTab token={token} onEditWord={openEditor} />;
     }
     if (tab === "users") {
       return <UsersTab token={token} onOpenDetail={setDetailUserId} onSetTier={handleSetTier} />;

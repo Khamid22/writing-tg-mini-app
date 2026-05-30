@@ -13,7 +13,7 @@ const EMPTY: AdminWordInput = {
   english_example: "", uzbek_example: "",
   level: "A1", topic: "Everyday English", collection: "Daily Vocabulary",
   tags: "", collocations: "", common_mistake: "", writing_prompt: "",
-  difficulty_order: 0, audio_url: null, is_active: false,
+  difficulty_order: 0, audio_url: null, audio_status: "pending", quality_status: "review", is_active: false,
 };
 
 function toInput(word: AdminWord): AdminWordInput {
@@ -69,6 +69,12 @@ export function WordEditorModal({
             <label>Topic<input value={form.topic} onChange={(e) => update("topic", e.target.value)} /></label>
             <label>Collection<input value={form.collection} onChange={(e) => update("collection", e.target.value)} /></label>
             <label>Order<input type="number" min={0} value={form.difficulty_order} onChange={(e) => update("difficulty_order", Number(e.target.value))} /></label>
+            <label>Status<select value={form.quality_status} onChange={(e) => update("quality_status", e.target.value as AdminWordInput["quality_status"])}>
+              <option value="review">Review</option>
+              <option value="published">Published</option>
+              <option value="draft">Draft</option>
+              <option value="archived">Archived</option>
+            </select></label>
             <label>Tags<input value={form.tags} onChange={(e) => update("tags", e.target.value)} placeholder="travel, work, email" /></label>
             <label className="span-2">English definition<textarea value={form.english_definition} onChange={(e) => update("english_definition", e.target.value)} /></label>
             <label className="span-2">Uzbek meaning<textarea value={form.uzbek_definition} onChange={(e) => update("uzbek_definition", e.target.value)} /></label>
@@ -78,10 +84,7 @@ export function WordEditorModal({
             <label className="span-2">Common mistake<textarea value={form.common_mistake} onChange={(e) => update("common_mistake", e.target.value)} placeholder="Uzbek learners often confuse..." /></label>
             <label className="span-2">Writing prompt<textarea value={form.writing_prompt} onChange={(e) => update("writing_prompt", e.target.value)} placeholder="Write two sentences using this word." /></label>
             <label className="span-2">Audio URL<input value={form.audio_url ?? ""} onChange={(e) => update("audio_url", e.target.value || null)} /></label>
-            <label className="admin-check span-2">
-              <input type="checkbox" checked={form.is_active} onChange={(e) => update("is_active", e.target.checked)} />
-              Publish this word
-            </label>
+            <label>Audio status<input value={form.audio_status} onChange={(e) => update("audio_status", e.target.value)} /></label>
           </div>
           <div className="admin-actions">
             <button className="secondary-button" type="button" onClick={() => setForm(EMPTY)}>Clear</button>

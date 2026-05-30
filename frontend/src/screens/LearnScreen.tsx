@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { JSX } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { Check, Flame, Headphones, RotateCcw, X } from "lucide-react";
-import type { ApiLimit, ApiWord, WordEvent } from "../api";
-import { fetchTodayWord, sendWordEvent } from "../api";
+import { Check, Flag, Flame, Headphones, RotateCcw, X } from "lucide-react";
+import type { ApiLimit, ApiWord, WordEvent, WordReportReason } from "../api";
+import { fetchTodayWord, reportWord, sendWordEvent } from "../api";
 import { pronounceWord } from "../audio";
 import { getTodayKey } from "../storage";
 import type { LearnerState } from "../types";
@@ -24,6 +24,8 @@ export function LearnScreen({
   const [initialLoading, setInitialLoading] = useState(true);
   const [flipped, setFlipped] = useState(false);
   const [flipTurn, setFlipTurn] = useState(0);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportNotice, setReportNotice] = useState("");
   const fetching = useRef(false);
   const reduce = useReducedMotion();
 
@@ -50,6 +52,8 @@ export function LearnScreen({
         if (initial) setInitialLoading(false);
         setFlipped(false);
         setFlipTurn(0);
+        setReportOpen(false);
+        setReportNotice("");
       })
       .catch(() => {
         setWord(null);
@@ -114,6 +118,18 @@ export function LearnScreen({
     setFlipped((v) => !v);
     setFlipTurn((turn) => turn + 1);
     if (!flipped) recordEvent("flipped");
+  }
+
+  async function submitReport(reason: WordReportReason): Promise<void> {
+    if (!word) return;
+    setReportNotice("");
+    try {
+      await reportWord(word.id, reason);
+      setReportNotice("Rahmat. Admin bu kartani tekshiradi.");
+      setReportOpen(false);
+    } catch {
+      setReportNotice("Xabar yuborilmadi. Keyinroq urinib ko'ring.");
+    }
   }
 
   if (!apiToken || initialLoading) {
@@ -248,6 +264,9 @@ export function LearnScreen({
         <button aria-label="Tinglash" className="icon-button" type="button" onClick={speak}>
           <Headphones size={20} />
         </button>
+        <button aria-label="Muammo haqida xabar berish" className="icon-button" type="button" onClick={() => setReportOpen((v) => !v)}>
+          <Flag size={18} />
+        </button>
         {isReview ? (
           <>
             <button className="secondary-button" type="button" onClick={() => recordEvent("forgot")}>
@@ -268,6 +287,16 @@ export function LearnScreen({
           </>
         )}
       </div>
+      {reportOpen ? (
+        <div className="report-panel">
+          <button type="button" onClick={() => void submitReport("too_difficult")}>Juda qiyin</button>
+          <button type="button" onClick={() => void submitReport("wrong_meaning")}>Ma'no noto'g'ri</button>
+          <button type="button" onClick={() => void submitReport("audio_broken")}>Audio ishlamayapti</button>
+          <button type="button" onClick={() => void submitReport("bad_example")}>Misol yaxshi emas</button>
+          <button type="button" onClick={() => void submitReport("already_know")}>Bu so'zni bilaman</button>
+        </div>
+      ) : null}
+      {reportNotice ? <p className="report-notice">{reportNotice}</p> : null}
     </section>
   );
 }

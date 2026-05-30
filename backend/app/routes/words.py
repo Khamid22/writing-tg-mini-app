@@ -1,17 +1,26 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.dependencies import current_user
-from app.models import LearnerUser, WordItem
+from app.models import LearnerUser, WordItem, WordQualityStatus, WordReport
 from app.schemas import TodayWordResponse, WordEventRequest, WordEventResponse
 from app.services.limits import limit_payload
 from app.services.progress import apply_word_event, next_word_for_user
 from app.services.pronunciation import apply_pronunciation, lookup_pronunciation
 
 router = APIRouter(prefix="/api/mini/words", tags=["words"])
+
+
+class WordReportRequest(BaseModel):
+    reason: Literal["too_difficult", "wrong_meaning", "audio_broken", "bad_example", "already_know"]
+    details: str = Field(default="", max_length=500)
+
 
 def word_payload(word: WordItem) -> dict:
     return {
@@ -61,7 +70,7 @@ def word_event(
     db: Session = Depends(get_db),
 ) -> dict:
     word = db.get(WordItem, word_id)
-    if not word:
+    if not word or word.quality_status != WordQualityStatus.PUBLISHED.value or not word.is_active:
         raise HTTPException(status_code=404, detail="Word not found")
     progress = apply_word_event(db, user, word, payload.event)
     return {
@@ -74,11 +83,36 @@ def word_event(
 @router.get("/{word_id}/audio")
 async def word_audio(word_id: int, db: Session = Depends(get_db)) -> dict:
     word = db.get(WordItem, word_id)
-    if not word:
+    if not word or word.quality_status != WordQualityStatus.PUBLISHED.value or not word.is_active:
         raise HTTPException(status_code=404, detail="Word not found")
     if word.audio_url:
         return {"word": word.word, "audio_url": word.audio_url}
     result = await lookup_pronunciation(word.word)
     if apply_pronunciation(word, result):
+        word.audio_status = "ready"
+        db.commit()
+    elif not word.audio_url:
+        word.audio_status = "missing"
         db.commit()
     return {"word": word.word, "audio_url": word.audio_url}
+
+
+@router.post("/{word_id}/reports")
+def report_word(
+    word_id: int,
+    payload: WordReportRequest,
+    user: LearnerUser = Depends(current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    word = db.get(WordItem, word_id)
+    if not word or word.quality_status != WordQualityStatus.PUBLISHED.value or not word.is_active:
+        raise HTTPException(status_code=404, detail="Word not found")
+    report = WordReport(
+        user_id=user.id,
+        word_item_id=word.id,
+        reason=payload.reason,
+        details=payload.details.strip(),
+    )
+    db.add(report)
+    db.commit()
+    return {"ok": True, "report_id": report.id}

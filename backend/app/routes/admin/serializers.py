@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from app.models import LearnerUser, PaymentRequest, WordItem
+from app.models import LearnerUser, PaymentRequest, WordItem, WordReport
 from app.routes.words import word_payload
 
 
@@ -13,8 +13,29 @@ def iso(value: datetime | None) -> str | None:
 def serialize_word(word: WordItem) -> dict:
     return {
         **word_payload(word),
+        "audio_status": word.audio_status,
+        "quality_status": word.quality_status,
         "is_active": word.is_active,
         "created_at": iso(word.created_at),
+    }
+
+
+def serialize_word_report(report: WordReport) -> dict:
+    word = report.word
+    user = report.user
+    return {
+        "id": report.id,
+        "reason": report.reason,
+        "details": report.details,
+        "status": report.status,
+        "created_at": iso(report.created_at),
+        "resolved_at": iso(report.resolved_at),
+        "word": serialize_word(word) if word else None,
+        "user": {
+            "id": user.id,
+            "display_name": user.display_name,
+            "username": user.username,
+        } if user else None,
     }
 
 
