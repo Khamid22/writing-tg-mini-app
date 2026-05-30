@@ -18,10 +18,9 @@ export function LandingPage({ onRegister }: { onRegister: () => void }): JSX.Ele
           <div className="lp-hero-grid simple">
             <div>
               <div className="lp-eyebrow">Telegram Mini App</div>
-              <h1 className="lp-headline">English vocabulary uchun sodda learning path.</h1>
+              <h1 className="lp-headline">English vocabulary, tartibli va sodda.</h1>
               <p className="lp-lede">
-                So'zlar daraja va mavzu bo'yicha beriladi. Har bir karta pronunciation,
-                meaning, example, test va favorites bilan ishlaydi.
+                Daraja tanlang, mavzu tanlang, kartalar bilan o'rganing.
               </p>
               <button className="lp-btn lp-accent" type="button" onClick={onRegister}>Ro'yxatdan o'tish</button>
             </div>
@@ -33,7 +32,7 @@ export function LandingPage({ onRegister }: { onRegister: () => void }): JSX.Ele
         <div className="lp-wrap">
           <div className="lp-section-head compact">
             <div className="lp-section-label">Tariflar</div>
-            <h2 className="lp-section-h2">2 ta plan mavjud.</h2>
+            <h2 className="lp-section-h2">Ikki plan.</h2>
           </div>
           <div className="lp-price-grid">
             <div className="lp-tier">

@@ -1645,7 +1645,8 @@ h2 {
   border-bottom: 1px solid var(--lp-rule);
 }
 .lp-hero.simple {
-  min-height: min(560px, calc(var(--app-height) - 76px));
+  min-height: 0;
+  padding: clamp(28px, 6vw, 56px) 0 clamp(28px, 6vw, 52px);
   display: grid;
   align-items: center;
 }
@@ -1656,7 +1657,23 @@ h2 {
   align-items: start;
 }
 .lp-hero-grid.simple {
-  max-width: 760px;
+  max-width: 680px;
+}
+
+.lp-hero.simple .lp-eyebrow {
+  margin-bottom: 14px;
+}
+
+.lp-hero.simple .lp-headline {
+  max-width: 12ch;
+  font-size: clamp(36px, 7vw, 68px);
+  margin-bottom: 14px;
+}
+
+.lp-hero.simple .lp-lede {
+  max-width: 28em;
+  margin-bottom: 22px;
+  font-size: clamp(16px, 2vw, 19px);
 }
 .lp-eyebrow {
   font-variant: small-caps;
@@ -1865,7 +1882,9 @@ h2 {
   margin-bottom: clamp(40px, 6vw, 64px);
 }
 .lp-section-head.compact {
-  margin-bottom: 24px;
+  grid-template-columns: minmax(120px, 0.35fr) minmax(0, 1fr);
+  gap: 24px;
+  margin-bottom: 18px;
 }
 .lp-section-label {
   font-variant: small-caps;
@@ -2122,7 +2141,7 @@ h2 {
 
 /* ─── pricing ────────────────────────────────────────────────────── */
 .lp-pricing {
-  padding: clamp(64px, 10vw, 96px) 0 clamp(64px, 10vw, 100px);
+  padding: clamp(28px, 6vw, 48px) 0 clamp(32px, 7vw, 56px);
   border-bottom: 1px solid var(--lp-rule);
 }
 .lp-price-grid {
@@ -2132,7 +2151,7 @@ h2 {
   border-bottom: 1px solid var(--lp-ink);
 }
 .lp-tier {
-  padding: 36px 0;
+  padding: 22px 0;
   display: flex;
   flex-direction: column;
   border-bottom: 1px solid var(--lp-rule);
@@ -2146,7 +2165,7 @@ h2 {
   letter-spacing: 0.2em;
   font-size: 11px;
   color: var(--lp-muted);
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 .lp-tier-premium .lp-tier-kicker {
   color: var(--lp-accent);
@@ -2154,12 +2173,12 @@ h2 {
 .lp-tier h3 {
   font-weight: normal;
   font-size: clamp(28px, 4.5vw, 40px);
-  margin: 0 0 6px;
+  margin: 0 0 3px;
   letter-spacing: -0.01em;
 }
 .lp-tier-price {
   font-size: clamp(20px, 3vw, 28px);
-  margin-bottom: 22px;
+  margin-bottom: 12px;
 }
 .lp-per {
   font-size: 14px;
@@ -2169,10 +2188,10 @@ h2 {
 .lp-tier ul {
   list-style: none;
   padding: 0;
-  margin: 0 0 24px;
+  margin: 0;
 }
 .lp-tier li {
-  padding: 10px 0;
+  padding: 7px 0;
   border-top: 1px solid var(--lp-rule-2);
   font-size: 15px;
   color: var(--lp-ink-2);
@@ -2223,7 +2242,7 @@ h2 {
 /* ─── footer ─────────────────────────────────────────────────────── */
 .lp-footer {
   border-top: 1px solid var(--lp-rule);
-  padding: 32px 0 calc(32px + var(--tg-bottom-inset) + var(--tg-nav-lift));
+  padding: 18px 0 calc(18px + var(--tg-bottom-inset) + var(--tg-nav-lift));
   font-size: 13px;
   color: var(--lp-muted);
 }
@@ -2601,11 +2620,11 @@ h2 {
   .lp-tier {
     border-bottom: 0;
     border-right: 1px solid var(--lp-rule);
-    padding: 36px 36px 36px 0;
+    padding: 22px 28px 22px 0;
   }
   .lp-tier:last-child {
     border-right: 0;
-    padding: 36px 0 36px 36px;
+    padding: 22px 0 22px 28px;
   }
   .lp-section-head {
     grid-template-columns: 220px 1fr;
