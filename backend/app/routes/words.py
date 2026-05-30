@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from urllib.parse import quote
-
-import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -12,12 +9,9 @@ from app.models import LearnerUser, WordItem
 from app.schemas import TodayWordResponse, WordEventRequest, WordEventResponse
 from app.services.limits import limit_payload
 from app.services.progress import apply_word_event, next_word_for_user
+from app.services.pronunciation import apply_pronunciation, lookup_pronunciation
 
 router = APIRouter(prefix="/api/mini/words", tags=["words"])
-
-_DICTIONARY_API = "https://api.dictionaryapi.dev/api/v2/entries/en/"
-_AUDIO_LOOKUP_TIMEOUT = 5.0
-
 
 def word_payload(word: WordItem) -> dict:
     return {
@@ -77,22 +71,6 @@ def word_event(
     }
 
 
-async def _resolve_audio_url(word_text: str) -> str | None:
-    """Look up a real human pronunciation from dictionaryapi.dev. Returns None on failure."""
-    try:
-        async with httpx.AsyncClient(timeout=_AUDIO_LOOKUP_TIMEOUT) as client:
-            response = await client.get(f"{_DICTIONARY_API}{quote(word_text)}")
-            if response.status_code != 200:
-                return None
-            for entry in response.json():
-                for phonetic in entry.get("phonetics", []):
-                    if audio := (phonetic.get("audio") or "").strip():
-                        return audio
-    except (httpx.HTTPError, ValueError):
-        return None
-    return None
-
-
 @router.get("/{word_id}/audio")
 async def word_audio(word_id: int, db: Session = Depends(get_db)) -> dict:
     word = db.get(WordItem, word_id)
@@ -100,8 +78,7 @@ async def word_audio(word_id: int, db: Session = Depends(get_db)) -> dict:
         raise HTTPException(status_code=404, detail="Word not found")
     if word.audio_url:
         return {"word": word.word, "audio_url": word.audio_url}
-    resolved = await _resolve_audio_url(word.word)
-    if resolved:
-        word.audio_url = resolved
+    result = await lookup_pronunciation(word.word)
+    if apply_pronunciation(word, result):
         db.commit()
-    return {"word": word.word, "audio_url": resolved}
+    return {"word": word.word, "audio_url": word.audio_url}

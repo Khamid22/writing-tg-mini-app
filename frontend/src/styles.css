@@ -3246,7 +3246,7 @@ h2 {
 
 .admin-tools {
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) 150px 130px;
+  grid-template-columns: minmax(240px, 1fr) 150px 130px auto;
   gap: 8px;
   margin-bottom: 10px;
 }
@@ -3266,6 +3266,17 @@ h2 {
   padding-left: 32px;
 }
 
+.admin-tools-button {
+  min-height: 42px;
+  white-space: nowrap;
+}
+
+.admin-inline-note {
+  margin: 0 0 10px;
+  color: var(--admin-muted);
+  font-size: 14px;
+}
+
 .admin-table {
   display: grid;
   border-top: 1px solid var(--admin-rule);
@@ -3275,7 +3286,7 @@ h2 {
 
 .admin-table-row {
   display: grid;
-  grid-template-columns: minmax(120px, 0.8fr) minmax(180px, 1.25fr) 70px 92px 88px;
+  grid-template-columns: minmax(120px, 0.8fr) minmax(180px, 1.25fr) 70px 92px 112px;
   gap: 12px;
   align-items: center;
   min-height: 44px;

@@ -137,6 +137,13 @@ export type AdminImportResponse = {
   skipped_count: number;
 };
 
+export type AdminPronunciationResponse = {
+  checked: number;
+  updated: number;
+  not_found: string[];
+  not_found_count: number;
+};
+
 function apiBaseUrl(): string {
   const configured = import.meta.env.VITE_API_BASE_URL as string | undefined;
   if (configured) return configured.replace(/\/$/, "");
@@ -215,6 +222,22 @@ export async function disableAdminWord(adminToken: string, wordId: number): Prom
   return adminFetch<AdminWord>(`/api/admin/words/${wordId}`, adminToken, {
     method: "DELETE",
   });
+}
+
+export async function enrichAdminWordPronunciation(adminToken: string, wordId: number): Promise<{ word: AdminWord; updated: boolean; source: string | null }> {
+  return adminFetch<{ word: AdminWord; updated: boolean; source: string | null }>(
+    `/api/admin/words/${wordId}/enrich-pronunciation`,
+    adminToken,
+    { method: "POST" },
+  );
+}
+
+export async function enrichAdminPronunciations(adminToken: string, limit = 50): Promise<AdminPronunciationResponse> {
+  return adminFetch<AdminPronunciationResponse>(
+    `/api/admin/words/enrich-pronunciation?limit=${limit}`,
+    adminToken,
+    { method: "POST" },
+  );
 }
 
 export async function importAdminWordsFile(

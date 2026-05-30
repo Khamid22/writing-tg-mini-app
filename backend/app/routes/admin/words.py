@@ -14,6 +14,7 @@ from app.db.session import get_db
 from app.models import LearnerDailyUsage, LearnerProgress, LearnerUser, PaymentRequest, PaymentStatus, QuizAttempt, WordItem
 from app.routes.admin.auth import require_admin
 from app.routes.admin.serializers import serialize_word
+from app.services.pronunciation import apply_pronunciation, lookup_pronunciation
 from app.services.word_import import import_rows, parse_csv, parse_xlsx
 
 router = APIRouter(dependencies=[Depends(require_admin)])
@@ -236,6 +237,50 @@ def disable_word(word_id: int, db: Session = Depends(get_db)) -> dict:
     db.commit()
     db.refresh(word)
     return serialize_word(word)
+
+
+@router.post("/words/{word_id}/enrich-pronunciation")
+async def enrich_word_pronunciation(word_id: int, db: Session = Depends(get_db)) -> dict:
+    word = db.get(WordItem, word_id)
+    if not word:
+        raise HTTPException(status_code=404, detail="Word not found")
+    result = await lookup_pronunciation(word.word)
+    changed = apply_pronunciation(word, result)
+    if changed:
+        db.commit()
+        db.refresh(word)
+    return {"word": serialize_word(word), "updated": changed, "source": result.source}
+
+
+@router.post("/words/enrich-pronunciation")
+async def enrich_missing_pronunciations(
+    limit: int = Query(default=50, ge=1, le=200),
+    db: Session = Depends(get_db),
+) -> dict:
+    words = list(
+        db.scalars(
+            select(WordItem)
+            .where(WordItem.is_active.is_(True), or_(WordItem.audio_url.is_(None), WordItem.audio_url == ""))
+            .order_by(WordItem.created_at.desc(), WordItem.id.desc())
+            .limit(limit)
+        )
+    )
+    checked = len(words)
+    updated = 0
+    not_found: list[str] = []
+    for word in words:
+        result = await lookup_pronunciation(word.word)
+        if apply_pronunciation(word, result):
+            updated += 1
+        else:
+            not_found.append(word.word)
+    db.commit()
+    return {
+        "checked": checked,
+        "updated": updated,
+        "not_found": not_found[:25],
+        "not_found_count": len(not_found),
+    }
 
 
 @router.post("/words/import-file")

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import type { JSX } from "react";
-import { Edit3, Search, Trash2 } from "lucide-react";
+import { Edit3, Headphones, Search, Trash2 } from "lucide-react";
 import type { AdminWord } from "../adminApi";
-import { fetchAdminWords } from "../adminApi";
+import { enrichAdminPronunciations, enrichAdminWordPronunciation, fetchAdminWords } from "../adminApi";
 import { useAdminFetch } from "./useAdminFetch";
 
 const LEVELS = ["A1", "A2", "B1", "B2", "C1"] as const;
@@ -21,12 +21,40 @@ export function WordsTab({
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [level, setLevel] = useState("");
+  const [enriching, setEnriching] = useState(false);
+  const [notice, setNotice] = useState("");
 
   const { data, loading } = useAdminFetch(
     () => fetchAdminWords(token, { search, status, level }).then((r) => r.items),
     [search, status, level, reloadKey],
     { debounceMs: 250 },
   );
+
+  async function enrichMissing(): Promise<void> {
+    setEnriching(true);
+    setNotice("");
+    try {
+      const result = await enrichAdminPronunciations(token, 50);
+      setNotice(`${result.updated}/${result.checked} words updated with pronunciation.`);
+    } catch {
+      setNotice("Pronunciation lookup failed.");
+    } finally {
+      setEnriching(false);
+    }
+  }
+
+  async function enrichOne(word: AdminWord): Promise<void> {
+    setEnriching(true);
+    setNotice("");
+    try {
+      const result = await enrichAdminWordPronunciation(token, word.id);
+      setNotice(result.updated ? `"${word.word}" pronunciation saved.` : `"${word.word}" pronunciation was not found.`);
+    } catch {
+      setNotice(`Could not enrich "${word.word}".`);
+    } finally {
+      setEnriching(false);
+    }
+  }
 
   return (
     <section className="admin-words-layout admin-fade-in">
@@ -49,7 +77,11 @@ export function WordsTab({
             <option value="">All levels</option>
             {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
           </select>
+          <button className="admin-button secondary-button admin-tools-button" type="button" disabled={enriching} onClick={() => void enrichMissing()}>
+            <Headphones size={15} /> {enriching ? "Filling..." : "Fill audio"}
+          </button>
         </div>
+        {notice ? <p className="admin-inline-note">{notice}</p> : null}
         <div className="admin-table">
           <div className="admin-table-row admin-table-head">
             <span>Word</span><span>Meaning</span><span>Topic</span><span>Status</span><span>Actions</span>
@@ -61,6 +93,7 @@ export function WordsTab({
               <span>{word.topic || word.level}</span>
               <span>{word.is_active ? "Published" : "Draft"}</span>
               <span className="admin-row-actions">
+                <button type="button" title="Fill pronunciation" onClick={() => void enrichOne(word)}><Headphones size={15} /></button>
                 <button type="button" title="Edit" onClick={() => onEdit(word)}><Edit3 size={15} /></button>
                 <button type="button" title="Draft" onClick={() => void onDisable(word)}><Trash2 size={15} /></button>
               </span>
