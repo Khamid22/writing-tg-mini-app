@@ -23,15 +23,39 @@ import { AnimatedScreen, tapScale } from "./uiMotion";
 type Tab = "learn" | "test" | "courses" | "favorites" | "dashboard" | "leaders" | "profile";
 type EntryScreen = "landing" | "register" | "app";
 
-const navItems: Array<{ tab: Tab; label: string; icon: typeof BookOpen }> = [
-  { tab: "learn", label: "O'rganish", icon: BookOpen },
-  { tab: "test", label: "Test", icon: GraduationCap },
-  { tab: "courses", label: "Kurslar", icon: BookMarked },
-  { tab: "favorites", label: "Favorites", icon: Star },
-  { tab: "dashboard", label: "Natija", icon: BarChart3 },
-  { tab: "leaders", label: "Reyting", icon: Medal },
-  { tab: "profile", label: "Profil", icon: User },
+type NavItem = { tab: Tab; label: string; icon: typeof BookOpen };
+
+const navSections: Array<{ title: string; items: NavItem[] }> = [
+  {
+    title: "Vocabulary",
+    items: [
+      { tab: "learn", label: "O'rganish", icon: BookOpen },
+      { tab: "favorites", label: "Favorites", icon: Star },
+    ],
+  },
+  {
+    title: "Practice",
+    items: [
+      { tab: "test", label: "Test", icon: GraduationCap },
+      { tab: "courses", label: "Kurslar", icon: BookMarked },
+    ],
+  },
+  {
+    title: "Progress",
+    items: [
+      { tab: "dashboard", label: "Natija", icon: BarChart3 },
+      { tab: "leaders", label: "Reyting", icon: Medal },
+    ],
+  },
+  {
+    title: "Account",
+    items: [
+      { tab: "profile", label: "Profil", icon: User },
+    ],
+  },
 ];
+
+const navItems = navSections.flatMap((section) => section.items);
 
 const PENDING_PREFS_KEY = "uzbek-words-pending-preferences";
 
@@ -254,22 +278,29 @@ export function App(): JSX.Element {
             <X size={18} />
           </button>
         </div>
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <motion.button
-              className="nav-button"
-              data-active={item.tab === activeTab}
-              key={item.tab}
-              onClick={() => { setActiveTab(item.tab); setDrawerOpen(false); }}
-              type="button"
-              whileTap={tapScale()}
-            >
-              <Icon size={19} />
-              <span>{item.label}</span>
-            </motion.button>
-          );
-        })}
+        {navSections.map((section) => (
+          <div className="nav-section" key={section.title}>
+            <span className="nav-section-title">{section.title}</span>
+            <div className="nav-section-items">
+              {section.items.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <motion.button
+                    className="nav-button"
+                    data-active={item.tab === activeTab}
+                    key={item.tab}
+                    onClick={() => { setActiveTab(item.tab); setDrawerOpen(false); }}
+                    type="button"
+                    whileTap={tapScale()}
+                  >
+                    <Icon size={19} />
+                    <span>{item.label}</span>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
     </div>
   );

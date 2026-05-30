@@ -1044,6 +1044,28 @@ h2 {
   text-align: left;
 }
 
+.nav-section {
+  display: grid;
+  gap: 5px;
+}
+
+.nav-section + .nav-section {
+  margin-top: 10px;
+}
+
+.nav-section-title {
+  padding: 0 14px;
+  color: #8a857b;
+  font-size: 11px;
+  font-variant: small-caps;
+  letter-spacing: 0.16em;
+}
+
+.nav-section-items {
+  display: grid;
+  gap: 4px;
+}
+
 .nav-button span {
   font-size: 15px;
   white-space: nowrap;
@@ -3110,6 +3132,10 @@ h2 {
 .nav-button span {
   font-variant: small-caps;
   letter-spacing: 0.1em;
+}
+
+.nav-section-title {
+  color: var(--lp-muted);
 }
 
 .nav-button[data-active="true"] {
