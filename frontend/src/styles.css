@@ -1570,6 +1570,151 @@ h2 {
   letter-spacing: 0.08em;
 }
 
+.lp-compact-shell {
+  min-height: var(--app-height);
+  display: grid;
+  place-items: center;
+  padding: calc(18px + var(--tg-top-inset)) var(--lp-pad) calc(18px + var(--tg-bottom-inset) + var(--tg-nav-lift));
+}
+
+.lp-intro-panel {
+  width: min(100%, 920px);
+  display: grid;
+  gap: clamp(20px, 4vw, 32px);
+  padding: clamp(22px, 5vw, 46px);
+  border: 1px solid rgba(26, 24, 20, 0.16);
+  background: rgba(236, 235, 231, 0.55);
+}
+
+.lp-compact-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.lp-compact-copy {
+  display: grid;
+  gap: 12px;
+  max-width: 680px;
+}
+
+.lp-compact-kicker {
+  color: var(--lp-accent);
+  font-variant: small-caps;
+  letter-spacing: 0.18em;
+  font-size: 11px;
+}
+
+.lp-compact-copy h1 {
+  max-width: 11ch;
+  margin: 0;
+  color: var(--lp-ink);
+  font-size: clamp(42px, 9vw, 92px);
+  font-weight: normal;
+  line-height: 0.94;
+  letter-spacing: 0;
+  text-wrap: balance;
+}
+
+.lp-compact-copy p {
+  max-width: 36em;
+  margin: 0;
+  color: var(--lp-ink-2);
+  font-size: clamp(16px, 2vw, 19px);
+  line-height: 1.42;
+}
+
+.lp-feature-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.lp-feature-strip span {
+  min-height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(26, 24, 20, 0.14);
+  background: rgba(243, 243, 242, 0.62);
+  color: var(--lp-muted);
+  font-size: 13px;
+  font-variant: small-caps;
+  letter-spacing: 0.12em;
+}
+
+.lp-plan-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.lp-plan-card {
+  display: grid;
+  gap: 6px;
+  min-height: 112px;
+  align-content: center;
+  border: 1px solid rgba(26, 24, 20, 0.16);
+  background: rgba(243, 243, 242, 0.62);
+  padding: 16px;
+}
+
+.lp-plan-card.premium {
+  border-color: rgba(122, 46, 31, 0.45);
+  background: rgba(122, 46, 31, 0.055);
+}
+
+.lp-plan-card span {
+  color: var(--lp-muted);
+  font-size: 12px;
+  font-variant: small-caps;
+  letter-spacing: 0.14em;
+}
+
+.lp-plan-card strong {
+  color: var(--lp-ink);
+  font-size: clamp(22px, 4vw, 34px);
+  font-weight: normal;
+  line-height: 1;
+}
+
+.lp-plan-card em {
+  color: var(--lp-muted);
+  font-size: 13px;
+  font-style: normal;
+}
+
+.lp-compact-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.lp-compact-action span {
+  color: var(--lp-muted);
+  font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .lp-intro-panel {
+    padding: 20px;
+  }
+  .lp-compact-top {
+    align-items: flex-start;
+  }
+  .lp-feature-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .lp-plan-row {
+    grid-template-columns: 1fr;
+  }
+  .lp-compact-action .lp-btn {
+    width: 100%;
+  }
+}
+
 /* ─── topbar ─────────────────────────────────────────────────────── */
 .lp-topbar {
   border-bottom: 1px solid var(--lp-rule);
