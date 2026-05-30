@@ -50,7 +50,7 @@ class WordPayload(BaseModel):
     common_mistake: str
     writing_prompt: str
     difficulty_order: int
-    audio_url: str
+    audio_url: str | None = None
 
 
 class TodayWordResponse(BaseModel):

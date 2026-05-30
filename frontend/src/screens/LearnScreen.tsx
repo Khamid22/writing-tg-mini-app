@@ -47,6 +47,9 @@ export function LearnScreen({
         setFlipped(false);
       })
       .catch(() => {
+        setWord(null);
+        setIsReview(false);
+        setLimit(null);
         if (initial) setInitialLoading(false);
       })
       .finally(() => {
@@ -56,6 +59,11 @@ export function LearnScreen({
 
   useEffect(() => {
     if (!apiToken) return;
+    setInitialLoading(true);
+    setWord(null);
+    setLimit(null);
+    setIsReview(false);
+    fetching.current = false;
     fetchNext(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiToken, activeCollection]);
@@ -106,7 +114,7 @@ export function LearnScreen({
     );
   }
 
-  if (!limit?.can_learn_more && !isReview && !word) {
+  if (limit && limit.tier !== "paid" && !limit.can_learn_more && !isReview && !word) {
     return (
       <section className="limit-panel">
         <div className="panel-icon">

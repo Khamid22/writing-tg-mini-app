@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -8,10 +8,12 @@ from pydantic import BaseModel
 from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.db.session import get_db
 from app.models import LearnerProgress, LearnerUser, PointsEvent
 from app.routes.admin.auth import require_admin
 from app.routes.admin.serializers import serialize_user
+from app.services.limits import as_aware_utc
 
 router = APIRouter(dependencies=[Depends(require_admin)])
 
@@ -106,6 +108,13 @@ def update_user(user_id: int, payload: UserPatch, db: Session = Depends(get_db))
         raise HTTPException(status_code=404, detail="User not found")
     if payload.tier is not None:
         user.tier = payload.tier
+        if payload.tier == "free":
+            user.premium_until = None
+        elif (
+            payload.premium_until is None
+            and (not user.premium_until or as_aware_utc(user.premium_until) <= datetime.now(timezone.utc))
+        ):
+            user.premium_until = datetime.now(timezone.utc) + timedelta(days=get_settings().manual_payment_plan_days)
     if payload.premium_until is not None:
         if payload.premium_until == "":
             user.premium_until = None
