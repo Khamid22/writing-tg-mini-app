@@ -150,6 +150,10 @@ export type TopicsResponse = {
   items: Array<{ topic: string; count: number }>;
 };
 
+export type FavoritesResponse = {
+  items: ApiWord[];
+};
+
 export type ApiCollection = {
   name: string;
   total_words: number;
@@ -244,6 +248,10 @@ export async function fetchTodayWord(collection?: string | null, topic?: string 
 
 export async function fetchTopics(): Promise<TopicsResponse> {
   return apiFetch<TopicsResponse>("/api/mini/words/topics");
+}
+
+export async function fetchFavorites(): Promise<FavoritesResponse> {
+  return apiFetch<FavoritesResponse>("/api/mini/words/favorites");
 }
 
 export async function fetchWordAudio(wordId: number): Promise<{ word: string; audio_url: string | null }> {

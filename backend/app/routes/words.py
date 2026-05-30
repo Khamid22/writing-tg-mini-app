@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.dependencies import current_user
-from app.models import LearnerUser, WordItem, WordQualityStatus, WordReport
+from app.models import LearnerProgress, LearnerUser, WordItem, WordQualityStatus, WordReport
 from app.schemas import TodayWordResponse, WordEventRequest, WordEventResponse
 from app.services.limits import limit_payload
 from app.services.progress import apply_word_event, next_word_for_user
@@ -73,6 +73,24 @@ def topics(user: LearnerUser = Depends(current_user), db: Session = Depends(get_
         .order_by(func.count(WordItem.id).desc(), WordItem.topic.asc())
     ).all()
     return {"items": [{"topic": topic, "count": count} for topic, count in rows if topic]}
+
+
+@router.get("/favorites")
+def favorite_words(user: LearnerUser = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    rows = list(
+        db.scalars(
+            select(WordItem)
+            .join(LearnerProgress, LearnerProgress.word_item_id == WordItem.id)
+            .where(
+                LearnerProgress.user_id == user.id,
+                LearnerProgress.is_bookmarked.is_(True),
+                WordItem.is_active.is_(True),
+                WordItem.quality_status == WordQualityStatus.PUBLISHED.value,
+            )
+            .order_by(LearnerProgress.updated_at.desc().nulls_last(), WordItem.word.asc())
+        )
+    )
+    return {"items": [word_payload(word) for word in rows]}
 
 
 @router.post("/{word_id}/events", response_model=WordEventResponse)

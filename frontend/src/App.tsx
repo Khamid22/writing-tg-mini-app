@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { JSX } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { BarChart3, BookMarked, BookOpen, Crown, GraduationCap, Medal, Menu, User, X } from "lucide-react";
+import { BarChart3, BookMarked, BookOpen, Crown, GraduationCap, Medal, Menu, Star, User, X } from "lucide-react";
 import { applyApiUser, authenticateTelegram, clearStoredToken, fetchProgress, getStoredToken, updatePreferences } from "./api";
 import { DAILY_FREE_LIMIT } from "./data";
 import { clearState, dailyUsed, emptyProgress, loadState, saveState } from "./storage";
@@ -14,18 +14,20 @@ import { DashboardScreen } from "./screens/DashboardScreen";
 import { LeaderboardScreen } from "./screens/LeaderboardScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
 import { CoursesScreen } from "./screens/CoursesScreen";
+import { FavoritesScreen } from "./screens/FavoritesScreen";
 import { PublicProfile } from "./components/PublicProfile";
 import { playSound } from "./soundSystem";
 import { hapticSelection } from "./haptics";
 import { AnimatedScreen, tapScale } from "./uiMotion";
 
-type Tab = "learn" | "test" | "courses" | "dashboard" | "leaders" | "profile";
+type Tab = "learn" | "test" | "courses" | "favorites" | "dashboard" | "leaders" | "profile";
 type EntryScreen = "landing" | "register" | "app";
 
 const navItems: Array<{ tab: Tab; label: string; icon: typeof BookOpen }> = [
   { tab: "learn", label: "O'rganish", icon: BookOpen },
   { tab: "test", label: "Test", icon: GraduationCap },
   { tab: "courses", label: "Kurslar", icon: BookMarked },
+  { tab: "favorites", label: "Favorites", icon: Star },
   { tab: "dashboard", label: "Natija", icon: BarChart3 },
   { tab: "leaders", label: "Reyting", icon: Medal },
   { tab: "profile", label: "Profil", icon: User },
@@ -173,6 +175,9 @@ export function App(): JSX.Element {
     }
     if (activeTab === "dashboard") {
       return <DashboardScreen state={state} apiToken={apiToken} />;
+    }
+    if (activeTab === "favorites") {
+      return <FavoritesScreen state={state} apiToken={apiToken} />;
     }
     if (activeTab === "leaders") {
       return <LeaderboardScreen state={state} onSelectUser={setSelectedUserId} apiToken={apiToken} />;
