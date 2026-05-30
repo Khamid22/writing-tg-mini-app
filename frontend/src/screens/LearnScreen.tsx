@@ -21,6 +21,11 @@ const LEVEL_ROADMAP = [
   { code: "C2", label: "Proficient" },
 ];
 
+function topicLabel(topic: string | null | undefined): string {
+  if (!topic) return "Barchasi";
+  return topic.toLowerCase() === "general" ? "Umumiy" : topic;
+}
+
 export function LearnScreen({
   state,
   updateState,
@@ -56,6 +61,7 @@ export function LearnScreen({
 
   const activeCollection = state.activeCollection ?? null;
   const activeTopic = state.preferredTopic ?? null;
+  const topicChosen = activeTopic !== undefined;
 
   // Silent fetch: keeps the current card mounted so CSS transitions survive
   function fetchNext(initial = false): void {
@@ -245,7 +251,7 @@ export function LearnScreen({
     : nextLevel ? `Keyingi: ${nextLevel.label}` : "Final bosqich";
   const isBookmarked = Boolean(state.progress[word.id]?.isBookmarked);
 
-  function chooseTopic(topic: string | null): void {
+  function chooseTopic(topic: string | null | undefined): void {
     updateState((current) => ({ ...current, preferredTopic: topic }));
     updatePreferences({ preferred_topic: topic }).catch(() => {});
   }
@@ -275,6 +281,30 @@ export function LearnScreen({
         showFeedback("Oxirgi belgi bekor qilindi");
       })
       .catch(() => {});
+  }
+
+  if (!topicChosen) {
+    return (
+      <section className="topic-select-screen">
+        <div className="topic-select-head">
+          <span>Avval mavzu tanlang</span>
+          <h2>Qaysi yo'nalishda mashq qilamiz?</h2>
+          <p>Keyin kartalar shu tanlov bo'yicha ochiladi. Xohlasangiz hamma mavzudan aralash o'rganishingiz mumkin.</p>
+        </div>
+        <div className="topic-select-grid">
+          <button type="button" onClick={() => chooseTopic(null)}>
+            <strong>Barchasi</strong>
+            <span>Hamma mavzudan aralash kartalar</span>
+          </button>
+          {topics.map((item) => (
+            <button type="button" key={item.topic} onClick={() => chooseTopic(item.topic)}>
+              <strong>{topicLabel(item.topic)}</strong>
+              <span>{item.count} ta karta</span>
+            </button>
+          ))}
+        </div>
+      </section>
+    );
   }
 
   return (
@@ -315,21 +345,10 @@ export function LearnScreen({
         </span>
         <strong>{learnedTotal} ta o'rganildi</strong>
       </div>
-      {topics.length > 0 ? (
-        <div className="topic-strip" aria-label="Topic filter">
-          <button type="button" data-active={!activeTopic} onClick={() => chooseTopic(null)}>Hammasi</button>
-          {topics.map((item) => (
-            <button
-              type="button"
-              data-active={activeTopic === item.topic}
-              key={item.topic}
-              onClick={() => chooseTopic(activeTopic === item.topic ? null : item.topic)}
-            >
-              {item.topic}
-            </button>
-          ))}
-        </div>
-      ) : null}
+      <div className="topic-session-pill">
+        <span>Mavzu: {topicLabel(activeTopic)}</span>
+        <button type="button" onClick={() => chooseTopic(undefined)}>O'zgartirish</button>
+      </div>
 
       <motion.button
         key={`${word.id}-${isReview ? "review" : "learn"}`}

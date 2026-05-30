@@ -34,7 +34,7 @@ export function createInitialState(): LearnerState {
     paymentRequest: undefined,
     streak: 0,
     selectedLevel: "A1",
-    preferredTopic: null,
+    preferredTopic: undefined,
     levelProgress: [],
     uzbekScript: "latin",
     progress: {},

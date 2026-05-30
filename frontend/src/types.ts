@@ -39,7 +39,7 @@ export type LearnerState = {
   lastLearningDate?: string;
   activeCollection?: string | null;
   selectedLevel: string;
-  preferredTopic?: string | null;
+  preferredTopic?: string | null | undefined;
   uzbekScript: UzbekScriptPreference;
   levelProgress: Array<{
     level: string;

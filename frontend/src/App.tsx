@@ -83,7 +83,11 @@ export function App(): JSX.Element {
         if (pendingPrefs) {
           try {
             const parsed = JSON.parse(pendingPrefs) as { display_name?: string; selected_level?: string; preferred_topic?: string | null };
-            updatePreferences(parsed)
+            const payload = {
+              ...parsed,
+              ...(parsed.preferred_topic === undefined ? {} : { preferred_topic: parsed.preferred_topic }),
+            };
+            updatePreferences(payload)
               .then((res) => {
                 localStorage.removeItem(PENDING_PREFS_KEY);
                 updateState((current) => applyApiUser(current, res.user));
@@ -126,7 +130,7 @@ export function App(): JSX.Element {
     localStorage.setItem(PENDING_PREFS_KEY, JSON.stringify({
       display_name: displayName.trim() || state.displayName,
       selected_level: selectedLevel,
-      preferred_topic: state.preferredTopic ?? null,
+      ...(state.preferredTopic === undefined ? {} : { preferred_topic: state.preferredTopic }),
     }));
     localStorage.setItem("uzbek-words-onboarded", "true");
     setEntryScreen("app");
