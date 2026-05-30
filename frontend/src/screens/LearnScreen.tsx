@@ -12,6 +12,15 @@ import { getTodayKey } from "../storage";
 import type { LearnerState } from "../types";
 import { spring, tapScale } from "../uiMotion";
 
+const LEVEL_ROADMAP = [
+  { code: "A1", label: "Beginner" },
+  { code: "A2", label: "Elementary" },
+  { code: "B1", label: "Pre-Intermediate" },
+  { code: "B2", label: "Intermediate" },
+  { code: "C1", label: "Advanced" },
+  { code: "C2", label: "Proficient" },
+];
+
 export function LearnScreen({
   state,
   updateState,
@@ -203,6 +212,9 @@ export function LearnScreen({
   const script = state.uzbekScript ?? "latin";
   const uzbekDefinition = toUzbekScript(word.uzbek_definition, script);
   const uzbekExample = toUzbekScript(word.uzbek_example, script);
+  const currentLevelIndex = Math.max(0, LEVEL_ROADMAP.findIndex((level) => level.code === word.level.toUpperCase()));
+  const currentLevel = LEVEL_ROADMAP[currentLevelIndex] ?? LEVEL_ROADMAP[0];
+  const nextLevel = LEVEL_ROADMAP[currentLevelIndex + 1];
 
   return (
     <section className="learn-layout">
@@ -212,6 +224,26 @@ export function LearnScreen({
           <strong>{activeCollection}</strong>
         </div>
       ) : null}
+      <div className="learn-roadmap" aria-label="Learning roadmap">
+        <div className="learn-roadmap-head">
+          <span>Yo'l xaritasi</span>
+          <strong>{currentLevel.label}</strong>
+          {nextLevel ? <em>Keyingi: {nextLevel.label}</em> : <em>Final bosqich</em>}
+        </div>
+        <div className="level-path">
+          {LEVEL_ROADMAP.map((level, index) => (
+            <span
+              aria-label={`${level.label} ${index < currentLevelIndex ? "completed" : index === currentLevelIndex ? "current" : "locked"}`}
+              className="level-dot"
+              data-state={index < currentLevelIndex ? "done" : index === currentLevelIndex ? "current" : "locked"}
+              key={level.code}
+              title={level.label}
+            >
+              {level.code}
+            </span>
+          ))}
+        </div>
+      </div>
       <div className="daily-strip">
         <span>
           {isReview

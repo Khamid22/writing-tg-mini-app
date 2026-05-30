@@ -2439,6 +2439,7 @@ h2 {
 }
 
 .daily-strip,
+.learn-roadmap,
 .limit-panel,
 .empty-panel,
 .result-panel,
@@ -2499,6 +2500,76 @@ h2 {
   font-variant: small-caps;
   letter-spacing: 0.12em;
   font-size: 12px;
+}
+
+.learn-roadmap {
+  display: grid;
+  gap: 9px;
+  padding: 10px 12px;
+  border: 1px solid var(--lp-rule);
+  border-radius: 2px;
+}
+
+.learn-roadmap-head {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.learn-roadmap-head span,
+.learn-roadmap-head em {
+  color: var(--lp-muted);
+  font-variant: small-caps;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.learn-roadmap-head strong {
+  color: var(--lp-ink);
+  font-size: 15px;
+  font-weight: normal;
+  white-space: nowrap;
+}
+
+.learn-roadmap-head em {
+  justify-self: end;
+}
+
+.level-path {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.level-dot {
+  min-width: 0;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--lp-rule-2);
+  border-radius: 999px;
+  color: var(--lp-muted);
+  background: #f7f7f4;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.level-dot[data-state="done"] {
+  border-color: #242421;
+  background: #242421;
+  color: #fffdf8;
+}
+
+.level-dot[data-state="current"] {
+  border-color: #242421;
+  background: #fffdf8;
+  color: #242421;
+  box-shadow: inset 0 0 0 2px #242421;
 }
 
 .profile-stat,
@@ -2861,13 +2932,17 @@ h2 {
     max-width: 1080px;
     grid-template-columns: minmax(420px, 1.45fr) minmax(240px, 0.55fr);
     grid-template-areas:
-      "strip strip"
+      "roadmap strip"
       "card actions"
       "card report"
       "card notice";
     column-gap: 32px;
     row-gap: 18px;
     align-items: stretch;
+  }
+
+  .learn-layout > .learn-roadmap {
+    grid-area: roadmap;
   }
 
   .learn-layout > .daily-strip {
@@ -3038,12 +3113,26 @@ h2 {
   }
 
   .learn-layout {
-    grid-template-rows: auto auto auto auto;
+    grid-template-rows: auto auto auto auto auto;
     gap: 10px;
   }
 
+  .learn-roadmap-head {
+    grid-template-columns: 1fr auto;
+  }
+
+  .learn-roadmap-head span {
+    display: none;
+  }
+
+  .learn-roadmap-head em {
+    max-width: 45vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .learn-layout > .flashcard {
-    height: clamp(330px, calc(var(--app-height) - 268px - var(--tg-top-inset) - var(--tg-bottom-inset)), 520px);
+    height: clamp(310px, calc(var(--app-height) - 320px - var(--tg-top-inset) - var(--tg-bottom-inset)), 520px);
     min-height: 300px;
   }
 
