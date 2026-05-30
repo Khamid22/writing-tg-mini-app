@@ -4,16 +4,12 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Star, X } from "lucide-react";
 import type { ApiWord } from "../api";
 import { fetchFavorites } from "../api";
-import { toUzbekScript } from "../script";
-import type { LearnerState } from "../types";
 import { spring } from "../uiMotion";
 
 export function FavoritesScreen({
   apiToken,
-  state,
 }: {
   apiToken: string | null;
-  state: LearnerState;
 }): JSX.Element {
   const [items, setItems] = useState<ApiWord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,11 +92,11 @@ export function FavoritesScreen({
                   <dt>Inglizcha</dt>
                   <dd data-script-lock>{selected.english_definition}</dd>
                   <dt>O'zbekcha</dt>
-                  <dd>{toUzbekScript(selected.uzbek_definition, state.uzbekScript)}</dd>
+                  <dd>{selected.uzbek_definition}</dd>
                   <dt>Misol</dt>
                   <dd data-script-lock><em>{selected.english_example}</em></dd>
                   <dt>Tarjima</dt>
-                  <dd>{toUzbekScript(selected.uzbek_example, state.uzbekScript)}</dd>
+                  <dd>{selected.uzbek_example}</dd>
                 </dl>
               </div>
             </motion.section>

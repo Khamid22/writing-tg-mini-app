@@ -35,7 +35,7 @@ export function ProfileScreen({
         <h2>{state.displayName}</h2>
         <p>@{state.username}</p>
       </div>
-      <section className="panel">
+      <section className="panel profile-main-card">
         <div className="panel-heading">
           <h2>Tarif</h2>
           <span>{state.tier === "paid" ? "pullik" : "bepul"}</span>
@@ -48,11 +48,18 @@ export function ProfileScreen({
             <p>Premium sotib olish uchun botga <strong>/start</strong> yuboring va <strong>Premium sotib olish</strong> tugmasini bosing.</p>
           </div>
         )}
-      </section>
-      <section className="panel">
         <div className="profile-stat">
           <span>Daraja</span>
-          <strong>{LEVEL_OPTIONS.find((level) => level.code === state.selectedLevel)?.label ?? "Beginner"}</strong>
+          <select
+            aria-label="Daraja"
+            className="profile-select"
+            value={state.selectedLevel}
+            onChange={(event) => setLevel(event.target.value)}
+          >
+            {LEVEL_OPTIONS.map((level) => (
+              <option key={level.code} value={level.code}>{level.label}</option>
+            ))}
+          </select>
         </div>
         <div className="profile-stat">
           <span>Kunlik limit</span>
@@ -62,45 +69,25 @@ export function ProfileScreen({
           <span>O'rganilgan so'zlar</span>
           <strong>{countLearned(state.progress)} ta so'z</strong>
         </div>
-      </section>
-      <section className="panel">
-        <div className="panel-heading">
-          <h2>Daraja</h2>
-          <span>Istalgan payt o'zgartiring</span>
-        </div>
-        <div className="level-toggle" role="group" aria-label="English level">
-          {LEVEL_OPTIONS.map((level) => (
-            <button
-              key={level.code}
-              type="button"
-              data-active={state.selectedLevel === level.code}
-              onClick={() => setLevel(level.code)}
-            >
-              {level.label}
-            </button>
-          ))}
-        </div>
-      </section>
-      <section className="panel">
-        <div className="panel-heading">
-          <h2>Yozuv</h2>
+        <div className="profile-stat profile-language-row">
+          <span>Til</span>
           <span>{script === "cyrillic" ? "Кирилл" : "Latin"}</span>
-        </div>
-        <div className="script-toggle" role="group" aria-label="Uzbek yozuvi">
-          <button
-            type="button"
-            data-active={script === "latin"}
-            onClick={() => updateState((current) => ({ ...current, uzbekScript: "latin" }))}
-          >
-            Lotincha
-          </button>
-          <button
-            type="button"
-            data-active={script === "cyrillic"}
-            onClick={() => updateState((current) => ({ ...current, uzbekScript: "cyrillic" }))}
-          >
-            Кириллча
-          </button>
+          <div className="script-toggle compact" role="group" aria-label="Uzbek tili">
+            <button
+              type="button"
+              data-active={script === "latin"}
+              onClick={() => updateState((current) => ({ ...current, uzbekScript: "latin" }))}
+            >
+              Lotincha
+            </button>
+            <button
+              type="button"
+              data-active={script === "cyrillic"}
+              onClick={() => updateState((current) => ({ ...current, uzbekScript: "cyrillic" }))}
+            >
+              Кириллча
+            </button>
+          </div>
         </div>
       </section>
       <button className="secondary-button wide" type="button" onClick={onLogout}>

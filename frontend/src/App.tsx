@@ -18,18 +18,19 @@ import { FavoritesScreen } from "./screens/FavoritesScreen";
 import { PublicProfile } from "./components/PublicProfile";
 import { playSound } from "./soundSystem";
 import { hapticSelection } from "./haptics";
+import { toUzbekScript } from "./script";
 import { AnimatedScreen, tapScale } from "./uiMotion";
 
 type Tab = "learn" | "test" | "courses" | "favorites" | "dashboard" | "leaders" | "profile";
 type EntryScreen = "landing" | "register" | "app";
 
-type NavItem = { tab: Tab; label: string; icon: typeof BookOpen };
+type NavItem = { tab: Tab; label: string; icon: typeof BookOpen; translatable?: boolean };
 
 const navSections: Array<{ title: string; items: NavItem[] }> = [
   {
     title: "Vocabulary",
     items: [
-      { tab: "learn", label: "O'rganish", icon: BookOpen },
+      { tab: "learn", label: "O'rganish", icon: BookOpen, translatable: true },
       { tab: "favorites", label: "Favorites", icon: Star },
     ],
   },
@@ -37,20 +38,20 @@ const navSections: Array<{ title: string; items: NavItem[] }> = [
     title: "Practice",
     items: [
       { tab: "test", label: "Test", icon: GraduationCap },
-      { tab: "courses", label: "Kurslar", icon: BookMarked },
+      { tab: "courses", label: "Kurslar", icon: BookMarked, translatable: true },
     ],
   },
   {
     title: "Progress",
     items: [
-      { tab: "dashboard", label: "Natija", icon: BarChart3 },
-      { tab: "leaders", label: "Reyting", icon: Medal },
+      { tab: "dashboard", label: "Natija", icon: BarChart3, translatable: true },
+      { tab: "leaders", label: "Reyting", icon: Medal, translatable: true },
     ],
   },
   {
     title: "Account",
     items: [
-      { tab: "profile", label: "Profil", icon: User },
+      { tab: "profile", label: "Profil", icon: User, translatable: true },
     ],
   },
 ];
@@ -176,7 +177,12 @@ export function App(): JSX.Element {
     );
   }
 
-  const currentLabel = navItems.find((n) => n.tab === activeTab)?.label ?? "Yangi so'zlar";
+  function uiLabel(item: NavItem): string {
+    return item.translatable ? toUzbekScript(item.label, state.uzbekScript) : item.label;
+  }
+
+  const currentItem = navItems.find((n) => n.tab === activeTab);
+  const currentLabel = currentItem ? uiLabel(currentItem) : toUzbekScript("Yangi so'zlar", state.uzbekScript);
 
   function activeScreen(): JSX.Element | null {
     if (activeTab === "learn") {
@@ -201,7 +207,7 @@ export function App(): JSX.Element {
       return <DashboardScreen state={state} apiToken={apiToken} />;
     }
     if (activeTab === "favorites") {
-      return <FavoritesScreen state={state} apiToken={apiToken} />;
+      return <FavoritesScreen apiToken={apiToken} />;
     }
     if (activeTab === "leaders") {
       return <LeaderboardScreen state={state} onSelectUser={setSelectedUserId} apiToken={apiToken} />;
@@ -240,7 +246,7 @@ export function App(): JSX.Element {
           <Menu size={20} />
         </button>
         <div className="topbar-titles">
-          <p className="eyebrow">Kundalik ingliz tili</p>
+          <p className="eyebrow">{toUzbekScript("Kundalik ingliz tili", state.uzbekScript)}</p>
           <h1>{currentLabel}</h1>
         </div>
         <div className="tier-pill" data-tier={state.tier}>
@@ -294,7 +300,7 @@ export function App(): JSX.Element {
                     whileTap={tapScale()}
                   >
                     <Icon size={19} />
-                    <span>{item.label}</span>
+              <span>{uiLabel(item)}</span>
                   </motion.button>
                 );
               })}

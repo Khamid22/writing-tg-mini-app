@@ -328,18 +328,43 @@ h2 {
   gap: 8px;
 }
 
+.script-toggle.compact {
+  width: min(230px, 100%);
+  justify-self: end;
+}
+
 .script-toggle button {
-  min-height: 42px;
+  min-height: 36px;
   border: 1px solid var(--lp-rule);
   background: #fff;
   color: var(--lp-ink);
   font: inherit;
+  font-size: 14px;
   cursor: pointer;
 }
 
 .script-toggle button[data-active="true"] {
   background: var(--lp-ink);
   color: var(--lp-bg);
+}
+
+.profile-main-card {
+  display: grid;
+  gap: 0;
+}
+
+.profile-select {
+  width: min(230px, 100%);
+  min-height: 38px;
+  border: 1px solid var(--lp-rule);
+  background: var(--lp-paper);
+  color: var(--lp-ink);
+  font: inherit;
+  padding: 0 10px;
+}
+
+.profile-language-row {
+  align-items: center;
 }
 
 .icon-button,
@@ -1619,11 +1644,19 @@ h2 {
   padding: clamp(40px, 8vw, 72px) 0 clamp(48px, 9vw, 88px);
   border-bottom: 1px solid var(--lp-rule);
 }
+.lp-hero.simple {
+  min-height: min(560px, calc(var(--app-height) - 76px));
+  display: grid;
+  align-items: center;
+}
 .lp-hero-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: clamp(40px, 6vw, 80px);
   align-items: start;
+}
+.lp-hero-grid.simple {
+  max-width: 760px;
 }
 .lp-eyebrow {
   font-variant: small-caps;
@@ -1830,6 +1863,9 @@ h2 {
   gap: 14px;
   align-items: baseline;
   margin-bottom: clamp(40px, 6vw, 64px);
+}
+.lp-section-head.compact {
+  margin-bottom: 24px;
 }
 .lp-section-label {
   font-variant: small-caps;
@@ -2241,6 +2277,10 @@ h2 {
   display: grid;
   grid-template-columns: 1fr;
 }
+.lp-register.simple {
+  min-height: var(--app-height);
+  place-items: center;
+}
 .lp-register-aside {
   background: #ecebe6;
   border-bottom: 1px solid var(--lp-rule);
@@ -2340,6 +2380,16 @@ h2 {
   flex-direction: column;
   justify-content: center;
 }
+.lp-register-main.simple {
+  width: min(100%, 760px);
+}
+.lp-register-simple-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 28px;
+}
 .lp-formhead {
   font-variant: small-caps;
   letter-spacing: 0.2em;
@@ -2407,6 +2457,37 @@ h2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+.lp-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.lp-plan-grid button {
+  min-height: 74px;
+  display: grid;
+  gap: 4px;
+  align-content: center;
+  text-align: left;
+  border: 1px solid var(--lp-rule);
+  background: transparent;
+  color: var(--lp-ink);
+  padding: 10px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+.lp-plan-grid button[data-active="true"] {
+  border-color: var(--lp-ink);
+  background: var(--lp-ink);
+  color: #fffdf8;
+}
+.lp-plan-grid strong {
+  font-weight: normal;
+}
+.lp-plan-grid span {
+  color: inherit;
+  opacity: 0.72;
+  font-size: 12px;
 }
 .lp-level-option {
   min-height: 74px;
@@ -3371,9 +3452,7 @@ h2 {
     grid-template-columns: minmax(280px, 360px) minmax(420px, 1fr);
     grid-template-areas:
       "identity plan"
-      "identity stats"
-      "identity script"
-      "logout script";
+      "identity logout";
     column-gap: 28px;
     row-gap: 18px;
     align-items: start;
@@ -3387,14 +3466,6 @@ h2 {
 
   .profile-layout > .panel:nth-of-type(1) {
     grid-area: plan;
-  }
-
-  .profile-layout > .panel:nth-of-type(2) {
-    grid-area: stats;
-  }
-
-  .profile-layout > .panel:nth-of-type(3) {
-    grid-area: script;
   }
 
   .profile-layout > .secondary-button {

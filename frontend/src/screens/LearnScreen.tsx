@@ -7,7 +7,6 @@ import { fetchTodayWord, fetchTopics, reportWord, sendWordEvent, updatePreferenc
 import { pronounceWord } from "../audio";
 import { playSound } from "../soundSystem";
 import { hapticNotify, hapticSelection } from "../haptics";
-import { toUzbekScript } from "../script";
 import { getTodayKey } from "../storage";
 import type { LearnerState } from "../types";
 import { spring, tapScale } from "../uiMotion";
@@ -234,9 +233,6 @@ export function LearnScreen({
     );
   }
 
-  const script = state.uzbekScript ?? "latin";
-  const uzbekDefinition = toUzbekScript(word.uzbek_definition, script);
-  const uzbekExample = toUzbekScript(word.uzbek_example, script);
   const currentLevelIndex = Math.max(0, LEVEL_ROADMAP.findIndex((level) => level.code === word.level.toUpperCase()));
   const currentLevel = LEVEL_ROADMAP[currentLevelIndex] ?? LEVEL_ROADMAP[0];
   const nextLevel = LEVEL_ROADMAP[currentLevelIndex + 1];
@@ -381,11 +377,11 @@ export function LearnScreen({
                 <dt>Inglizcha</dt>
                 <dd data-script-lock>{word.english_definition}</dd>
                 <dt>O'zbekcha</dt>
-                <dd>{uzbekDefinition}</dd>
+                <dd>{word.uzbek_definition}</dd>
                 <dt>Misol</dt>
                 <dd data-script-lock><em>{word.english_example}</em></dd>
                 <dt>Tarjima</dt>
-                <dd>{uzbekExample}</dd>
+                <dd>{word.uzbek_example}</dd>
               </dl>
             </div>
             <div className="flashcard-hint">
