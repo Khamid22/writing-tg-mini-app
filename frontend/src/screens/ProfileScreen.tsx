@@ -5,9 +5,11 @@ import { learnedWords } from "../helpers";
 
 export function ProfileScreen({
   state,
+  updateState,
   onLogout,
 }: {
   state: LearnerState;
+  updateState: (updater: (current: LearnerState) => LearnerState) => void;
   onLogout: () => void;
 }): JSX.Element {
   return (
@@ -39,6 +41,28 @@ export function ProfileScreen({
         <div className="profile-stat">
           <span>Ommaviy profil</span>
           <strong>{learnedWords(state).length} ta so'z</strong>
+        </div>
+      </section>
+      <section className="panel">
+        <div className="panel-heading">
+          <h2>Yozuv</h2>
+          <span>{state.uzbekScript === "cyrillic" ? "Кирилл" : "Latin"}</span>
+        </div>
+        <div className="script-toggle" role="group" aria-label="Uzbek yozuvi">
+          <button
+            type="button"
+            data-active={state.uzbekScript === "latin"}
+            onClick={() => updateState((current) => ({ ...current, uzbekScript: "latin" }))}
+          >
+            Lotincha
+          </button>
+          <button
+            type="button"
+            data-active={state.uzbekScript === "cyrillic"}
+            onClick={() => updateState((current) => ({ ...current, uzbekScript: "cyrillic" }))}
+          >
+            Кириллча
+          </button>
         </div>
       </section>
       <button className="secondary-button wide" type="button" onClick={onLogout}>

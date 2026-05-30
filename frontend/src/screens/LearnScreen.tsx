@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import type { JSX } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { Check, Flag, Flame, Headphones, RotateCcw, X } from "lucide-react";
+import { Check, Flag, Flame, RotateCcw, X } from "lucide-react";
 import type { ApiLimit, ApiWord, WordEvent, WordReportReason } from "../api";
 import { fetchTodayWord, reportWord, sendWordEvent } from "../api";
 import { pronounceWord } from "../audio";
+import { toUzbekScript } from "../script";
 import { getTodayKey } from "../storage";
 import type { LearnerState } from "../types";
 import { spring, tapScale } from "../uiMotion";
@@ -170,6 +171,8 @@ export function LearnScreen({
   const learnedTotal = Object.values(state.progress).filter(
     (p) => p.status === "learned" || p.status === "mastered",
   ).length;
+  const uzbekDefinition = toUzbekScript(word.uzbek_definition, state.uzbekScript);
+  const uzbekExample = toUzbekScript(word.uzbek_example, state.uzbekScript);
 
   return (
     <section className="learn-layout">
@@ -221,6 +224,7 @@ export function LearnScreen({
               <button
                 aria-label="Talaffuz"
                 className="flashcard-speaker"
+                data-sound="off"
                 type="button"
                 onClick={(e) => { e.stopPropagation(); speak(); }}
               >
@@ -238,11 +242,11 @@ export function LearnScreen({
                 <dt>Inglizcha</dt>
                 <dd>{word.english_definition}</dd>
                 <dt>O'zbekcha</dt>
-                <dd>{word.uzbek_definition}</dd>
+                <dd>{uzbekDefinition}</dd>
                 <dt>Misol</dt>
                 <dd><em>{word.english_example}</em></dd>
                 <dt>Tarjima</dt>
-                <dd>{word.uzbek_example}</dd>
+                <dd>{uzbekExample}</dd>
               </dl>
             </div>
             <div className="flashcard-hint">
@@ -250,6 +254,7 @@ export function LearnScreen({
               <button
                 aria-label="Talaffuz"
                 className="flashcard-speaker"
+                data-sound="off"
                 type="button"
                 onClick={(e) => { e.stopPropagation(); speak(); }}
               >
@@ -261,9 +266,6 @@ export function LearnScreen({
       </motion.button>
 
       <div className="action-row">
-        <button aria-label="Tinglash" className="icon-button" type="button" onClick={speak}>
-          <Headphones size={20} />
-        </button>
         <button aria-label="Muammo haqida xabar berish" className="icon-button" type="button" onClick={() => setReportOpen((v) => !v)}>
           <Flag size={18} />
         </button>
@@ -279,10 +281,10 @@ export function LearnScreen({
         ) : (
           <>
             <button className="secondary-button" type="button" onClick={() => recordEvent("practice_later")}>
-              Keyinroq
+              Keyingisi
             </button>
             <button className="primary-button" type="button" onClick={() => recordEvent("learned")}>
-              <Check size={16} /> O'rgandim
+              <Check size={16} /> Bilaman
             </button>
           </>
         )}

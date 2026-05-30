@@ -1,4 +1,5 @@
 export type Tier = "free" | "paid";
+export type UzbekScriptPreference = "latin" | "cyrillic";
 
 export type Word = {
   id: number;
@@ -34,6 +35,7 @@ export type LearnerState = {
   streak: number;
   lastLearningDate?: string;
   activeCollection?: string | null;
+  uzbekScript: UzbekScriptPreference;
   progress: Record<number, WordProgress>;
   dailyUsage: Record<string, number>;
   quizHistory: Array<{
@@ -102,6 +104,7 @@ export type TelegramWebApp = {
 
 declare global {
   interface Window {
+    webkitAudioContext?: typeof AudioContext;
     Telegram?: {
       WebApp?: TelegramWebApp;
     };

@@ -33,6 +33,7 @@ export function createInitialState(): LearnerState {
     tier: "free",
     paymentRequest: undefined,
     streak: 0,
+    uzbekScript: "latin",
     progress: {},
     dailyUsage: {},
     quizHistory: [],

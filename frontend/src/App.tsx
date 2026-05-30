@@ -15,6 +15,7 @@ import { LeaderboardScreen } from "./screens/LeaderboardScreen";
 import { ProfileScreen } from "./screens/ProfileScreen";
 import { CoursesScreen } from "./screens/CoursesScreen";
 import { PublicProfile } from "./components/PublicProfile";
+import { playTapSound } from "./sound";
 import { AnimatedScreen, tapScale } from "./uiMotion";
 
 type Tab = "learn" | "test" | "courses" | "dashboard" | "leaders" | "profile";
@@ -50,6 +51,17 @@ export function App(): JSX.Element {
   useEffect(() => {
     saveState(state);
   }, [state]);
+
+  useEffect(() => {
+    const onClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      const button = target?.closest("button");
+      if (!button || button.dataset.sound === "off") return;
+      playTapSound();
+    };
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, []);
 
   function updateState(updater: (current: LearnerState) => LearnerState): void {
     setState((current) => updater(current));
@@ -123,6 +135,7 @@ export function App(): JSX.Element {
       return (
         <ProfileScreen
           state={state}
+          updateState={updateState}
           onLogout={() => {
             clearState();
             clearStoredToken();

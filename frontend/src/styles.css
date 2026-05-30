@@ -264,7 +264,7 @@ h2 {
 
 .action-row {
   display: grid;
-  grid-template-columns: 44px 44px 1fr 1.2fr;
+  grid-template-columns: 44px 1fr 1.2fr;
   gap: 8px;
 }
 
@@ -296,6 +296,26 @@ h2 {
   margin: 0;
   color: var(--lp-muted);
   font-size: 13px;
+}
+
+.script-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.script-toggle button {
+  min-height: 42px;
+  border: 1px solid var(--lp-rule);
+  background: #fff;
+  color: var(--lp-ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.script-toggle button[data-active="true"] {
+  background: var(--lp-ink);
+  color: var(--lp-bg);
 }
 
 .icon-button,
@@ -2784,7 +2804,9 @@ h2 {
     grid-template-columns: minmax(420px, 1.45fr) minmax(240px, 0.55fr);
     grid-template-areas:
       "strip strip"
-      "card actions";
+      "card actions"
+      "card report"
+      "card notice";
     column-gap: 32px;
     row-gap: 18px;
     align-items: stretch;
@@ -2808,6 +2830,11 @@ h2 {
 
   .learn-layout > .action-row > * {
     width: 100%;
+  }
+
+  .learn-layout > .report-panel,
+  .learn-layout > .report-notice {
+    grid-area: report;
   }
 
   .flashcard-front h2,
@@ -2916,7 +2943,8 @@ h2 {
     grid-template-areas:
       "identity plan"
       "identity stats"
-      "logout stats";
+      "identity script"
+      "logout script";
     column-gap: 28px;
     row-gap: 18px;
     align-items: start;
@@ -2936,8 +2964,33 @@ h2 {
     grid-area: stats;
   }
 
+  .profile-layout > .panel:nth-of-type(3) {
+    grid-area: script;
+  }
+
   .profile-layout > .secondary-button {
     grid-area: logout;
+  }
+}
+
+@media (max-width: 767px) {
+  .screen .motion-screen,
+  .learn-layout {
+    min-height: 100%;
+  }
+
+  .learn-layout {
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    gap: 10px;
+  }
+
+  .learn-layout > .flashcard {
+    height: auto;
+    min-height: 0;
+  }
+
+  .learn-layout > .action-row {
+    margin-top: 0;
   }
 }
 
