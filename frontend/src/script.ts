@@ -1,6 +1,6 @@
 export type UzbekScript = "latin" | "cyrillic";
 
-const ORIGINAL_TEXT = new WeakMap<Text, string>();
+const TEXT_STATE = new WeakMap<Text, { original: string; rendered: string }>();
 const SCRIPT_LOCK_SELECTOR = [
   "[data-script-lock]",
   "input",
@@ -54,16 +54,18 @@ export function applyScriptToElement(root: HTMLElement, script: UzbekScript): vo
     const parent = node.parentElement;
     if (!parent || !node.nodeValue?.trim()) continue;
 
-    const original = ORIGINAL_TEXT.get(node) ?? node.nodeValue;
-    ORIGINAL_TEXT.set(node, original);
+    const previous = TEXT_STATE.get(node);
+    const original = previous && node.nodeValue === previous.rendered ? previous.original : node.nodeValue;
 
     if (parent.closest(SCRIPT_LOCK_SELECTOR)) {
       if (node.nodeValue !== original) node.nodeValue = original;
+      TEXT_STATE.set(node, { original, rendered: original });
       continue;
     }
 
     const nextValue = toUzbekScript(original, script);
     if (node.nodeValue !== nextValue) node.nodeValue = nextValue;
+    TEXT_STATE.set(node, { original, rendered: nextValue });
   }
 }
 

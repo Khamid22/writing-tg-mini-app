@@ -46,8 +46,8 @@ function pickBestEnglishVoice(): SpeechSynthesisVoice | null {
   }
 }
 
-function speakWithBestVoice(text: string): void {
-  if (!("speechSynthesis" in window)) return;
+function speakWithBestVoice(text: string): boolean {
+  if (!("speechSynthesis" in window)) return false;
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   const best = pickBestEnglishVoice();
@@ -60,6 +60,7 @@ function speakWithBestVoice(text: string): void {
   utterance.rate = 0.92;
   utterance.pitch = 1.0;
   window.speechSynthesis.speak(utterance);
+  return true;
 }
 
 /** Play the best available pronunciation for a word. Order of preference:
@@ -70,7 +71,7 @@ export async function pronounceWord(args: {
   id: number;
   word: string;
   audioUrl: string | null;
-}): Promise<void> {
+}): Promise<"audio" | "fallback" | "unavailable"> {
   stopAudio();
   const { id, word, audioUrl } = args;
 
@@ -91,13 +92,13 @@ export async function pronounceWord(args: {
       const audio = new Audio(url);
       activeAudio = audio;
       await audio.play();
-      return;
+      return "audio";
     } catch {
       activeAudio = null;
       // fall through to TTS
     }
   }
-  speakWithBestVoice(word);
+  return speakWithBestVoice(word) ? "fallback" : "unavailable";
 }
 
 // Warm up the voice list — Chrome populates asynchronously

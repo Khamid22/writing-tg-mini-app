@@ -299,6 +299,16 @@ h2 {
   font-size: 13px;
 }
 
+.learn-feedback {
+  margin: 0;
+  border: 1px solid var(--lp-rule);
+  background: var(--lp-paper);
+  color: var(--lp-ink);
+  padding: 9px 12px;
+  text-align: center;
+  font-size: 13px;
+}
+
 .script-toggle {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2834,7 +2844,8 @@ h2 {
   }
 
   .learn-layout > .report-panel,
-  .learn-layout > .report-notice {
+  .learn-layout > .report-notice,
+  .learn-layout > .learn-feedback {
     grid-area: report;
   }
 

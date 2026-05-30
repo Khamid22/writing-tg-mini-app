@@ -27,8 +27,11 @@ export function LearnScreen({
   const [flipTurn, setFlipTurn] = useState(0);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportNotice, setReportNotice] = useState("");
+  const [actionFeedback, setActionFeedback] = useState("");
+  const [audioFeedback, setAudioFeedback] = useState("");
   const fetching = useRef(false);
   const reduce = useReducedMotion();
+  const feedbackTimer = useRef<number | null>(null);
 
   function syncLimitToState(lim: ApiLimit): void {
     updateState((current) => ({
@@ -55,6 +58,7 @@ export function LearnScreen({
         setFlipTurn(0);
         setReportOpen(false);
         setReportNotice("");
+        setAudioFeedback("");
       })
       .catch(() => {
         setWord(null);
@@ -77,6 +81,18 @@ export function LearnScreen({
     fetchNext(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiToken, activeCollection]);
+
+  useEffect(() => {
+    return () => {
+      if (feedbackTimer.current) window.clearTimeout(feedbackTimer.current);
+    };
+  }, []);
+
+  function showFeedback(message: string): void {
+    setActionFeedback(message);
+    if (feedbackTimer.current) window.clearTimeout(feedbackTimer.current);
+    feedbackTimer.current = window.setTimeout(() => setActionFeedback(""), 1600);
+  }
 
   function recordEvent(eventName: WordEvent): void {
     if (!word) return;
@@ -101,6 +117,10 @@ export function LearnScreen({
                 }),
           },
         }));
+        if (eventName === "learned") showFeedback("+1 o'rganildi");
+        if (eventName === "practice_later") showFeedback("Keyingi karta");
+        if (eventName === "remembered") showFeedback("Takrorlash yangilandi");
+        if (eventName === "forgot") showFeedback("Qiyin deb belgilandi");
         if (eventName === "learned" || eventName === "practice_later" || eventName === "remembered" || eventName === "forgot") {
           fetchNext(); // silent — card stays mounted until next word arrives
         }
@@ -108,10 +128,19 @@ export function LearnScreen({
       .catch(() => {});
   }
 
-  function speak(): void {
+  async function speak(): Promise<void> {
     if (!word) return;
+    setAudioFeedback("Yuklanmoqda...");
     recordEvent("listened");
-    void pronounceWord({ id: word.id, word: word.word, audioUrl: word.audio_url });
+    const result = await pronounceWord({ id: word.id, word: word.word, audioUrl: word.audio_url });
+    setAudioFeedback(
+      result === "audio"
+        ? "Tinglanmoqda"
+        : result === "fallback"
+          ? "Telefon ovozi ishlatyapti"
+          : "Audio topilmadi",
+    );
+    window.setTimeout(() => setAudioFeedback(""), 1800);
   }
 
   function flip(): void {
@@ -227,7 +256,7 @@ export function LearnScreen({
                 className="flashcard-speaker"
                 data-sound="off"
                 type="button"
-                onClick={(e) => { e.stopPropagation(); speak(); }}
+                onClick={(e) => { e.stopPropagation(); void speak(); }}
               >
                 ♪
               </button>
@@ -257,7 +286,7 @@ export function LearnScreen({
                 className="flashcard-speaker"
                 data-sound="off"
                 type="button"
-                onClick={(e) => { e.stopPropagation(); speak(); }}
+                onClick={(e) => { e.stopPropagation(); void speak(); }}
               >
                 ♪
               </button>
@@ -298,6 +327,9 @@ export function LearnScreen({
           <button type="button" onClick={() => void submitReport("bad_example")}>Misol yaxshi emas</button>
           <button type="button" onClick={() => void submitReport("already_know")}>Bu so'zni bilaman</button>
         </div>
+      ) : null}
+      {actionFeedback || audioFeedback ? (
+        <p className="learn-feedback">{actionFeedback || audioFeedback}</p>
       ) : null}
       {reportNotice ? <p className="report-notice">{reportNotice}</p> : null}
     </section>
