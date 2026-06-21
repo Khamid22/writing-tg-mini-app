@@ -181,7 +181,14 @@ async function adminFetch<T>(path: string, adminToken: string, options: RequestI
     },
   });
   if (!response.ok) {
-    throw new Error(`Admin API ${response.status}`);
+    let detail = "";
+    try {
+      const body = await response.json();
+      detail = typeof body.detail === "string" ? body.detail : JSON.stringify(body);
+    } catch {
+      detail = await response.text().catch(() => "");
+    }
+    throw new Error(detail ? `Admin API ${response.status}: ${detail}` : `Admin API ${response.status}`);
   }
   return response.json() as Promise<T>;
 }

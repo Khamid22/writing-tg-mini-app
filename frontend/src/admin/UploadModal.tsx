@@ -33,8 +33,9 @@ export function UploadModal({
       const skipped = result.skipped_count ? ` ${result.skipped_count} qator o'tkazib yuborildi.` : "";
       onUploaded(`${result.imported} ta word yuklandi.${skipped}`);
       setFile(null); setUrl("");
-    } catch {
-      setError("Upload ishlamadi. File ustunlari yoki linkni tekshiring.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown upload error";
+      setError(`Upload ishlamadi: ${message}`);
     } finally {
       setBusy(false);
     }
