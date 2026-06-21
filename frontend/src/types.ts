@@ -3,18 +3,6 @@ export type UzbekScriptPreference = "latin" | "cyrillic";
 export type HapticImpactStyle = "light" | "medium" | "heavy" | "rigid" | "soft";
 export type HapticNotificationType = "error" | "success" | "warning";
 
-export type Word = {
-  id: number;
-  word: string;
-  wordType: string;
-  phonetic: string;
-  englishDefinition: string;
-  uzbekDefinition: string;
-  englishExample: string;
-  uzbekExample: string;
-  level: string;
-};
-
 export type WordProgress = {
   status: "new" | "seen" | "learning" | "learned" | "mastered";
   mastery: number;
@@ -34,9 +22,6 @@ export type LearnerState = {
   username: string;
   tier: Tier;
   premiumUntil?: string;
-  paymentRequest?: PaymentRequest;
-  streak: number;
-  lastLearningDate?: string;
   activeCollection?: string | null;
   selectedLevel: string;
   preferredTopic?: string | null | undefined;
@@ -50,31 +35,6 @@ export type LearnerState = {
   }>;
   progress: Record<number, WordProgress>;
   dailyUsage: Record<string, number>;
-  quizHistory: Array<{
-    id: string;
-    date: string;
-    score: number;
-    total: number;
-  }>;
-};
-
-export type PaymentRequest = {
-  code: string;
-  status: "pending" | "submitted" | "approved" | "cancelled" | "expired";
-  amountUzs: number;
-  planDays: number;
-  cardLabel: string;
-  expiresAt: string;
-  instructions: string[];
-  createdAt: string;
-};
-
-export type QuizQuestion = {
-  id: string;
-  wordId: number;
-  prompt: string;
-  choices: string[];
-  answer: string;
 };
 
 export type TelegramWebApp = {

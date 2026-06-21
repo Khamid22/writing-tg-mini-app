@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { JSX } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { motion, useMotionValue, useTransform, useReducedMotion, type PanInfo } from "motion/react";
 import { Check, Flag, Flame, RotateCcw, Star, X } from "lucide-react";
 import type { ApiLimit, ApiWord, WordEvent, WordReportReason } from "../api";
 import { fetchTodayWord, fetchTopics, reportWord, sendWordEvent, updatePreferences } from "../api";
@@ -50,6 +50,28 @@ export function LearnScreen({
   const reduce = useReducedMotion();
   const feedbackTimer = useRef<number | null>(null);
 
+  const dragX = useMotionValue(0);
+  const rotate = useTransform(dragX, [-200, 200], [-8, 8]);
+  const indicatorRightOpacity = useTransform(dragX, [20, 100], [0, 1]);
+  const indicatorLeftOpacity = useTransform(dragX, [-100, -20], [1, 0]);
+
+  // Reset the drag offset whenever a new card arrives so it enters centered.
+  useEffect(() => {
+    dragX.set(0);
+  }, [word?.id, dragX]);
+
+  function handleDragEnd(_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo): void {
+    if (reduce) return;
+    const threshold = 110;
+    if (info.offset.x > threshold) {
+      recordEvent(isReview ? "remembered" : "learned");
+    } else if (info.offset.x < -threshold) {
+      recordEvent(isReview ? "forgot" : "practice_later");
+    }
+    // dragConstraints springs the card back to center; the next card then
+    // remounts (keyed by word id) with its own entrance animation.
+  }
+
   function syncLimitToState(lim: ApiLimit): void {
     updateState((current) => ({
       ...current,
@@ -78,12 +100,14 @@ export function LearnScreen({
         setReportOpen(false);
         setReportNotice("");
         setAudioFeedback("");
+        dragX.set(0);
       })
       .catch(() => {
         setWord(null);
         setIsReview(false);
         setLimit(null);
         if (initial) setInitialLoading(false);
+        dragX.set(0);
       })
       .finally(() => {
         fetching.current = false;
@@ -183,6 +207,7 @@ export function LearnScreen({
     if (!word) return;
     setFlipped((v) => !v);
     setFlipTurn((turn) => turn + 1);
+    playSound("flip");
     if (!flipped) recordEvent("flipped");
   }
 
@@ -328,24 +353,63 @@ export function LearnScreen({
           ))}
         </div>
       </div>
-      <motion.button
+      <motion.div
         key={`${word.id}-${isReview ? "review" : "learn"}`}
+        role="button"
+        tabIndex={0}
         aria-label={flipped ? "So'zni ko'rsatish" : "Ma'noni ko'rsatish"}
         className="flashcard"
         data-flipped={flipped}
+        style={{ x: dragX, rotate }}
+        drag={reduce ? false : "x"}
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.65}
+        onDragEnd={handleDragEnd}
         onClick={flip}
-        type="button"
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flip(); } }}
         initial={reduce ? false : { opacity: 0, y: 10, scale: 0.99 }}
         animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
         transition={reduce ? { duration: 0 } : spring}
         whileTap={tapScale()}
       >
         <motion.div
+          className="swipe-indicator swipe-indicator-right"
+          style={{ opacity: indicatorRightOpacity }}
+        >
+          {isReview ? "Bilaman" : "O'rganildi"}
+        </motion.div>
+        <motion.div
+          className="swipe-indicator swipe-indicator-left"
+          style={{ opacity: indicatorLeftOpacity }}
+        >
+          {isReview ? "Eslolmadim" : "Keyinroq"}
+        </motion.div>
+
+        <motion.div
           className="flashcard-inner"
           animate={{ rotateY: reduce ? 0 : flipTurn * 180 }}
           transition={reduce ? { duration: 0 } : { duration: 0.42, ease: [0.32, 0.72, 0, 1] }}
         >
           <div className="flashcard-side flashcard-front">
+            <button
+              aria-label="Muammo haqida xabar berish"
+              className="card-action-btn card-action-btn-left"
+              data-sound="off"
+              onClick={(e) => { e.stopPropagation(); setReportOpen((v) => !v); }}
+              type="button"
+            >
+              <Flag size={14} />
+            </button>
+            <button
+              aria-label={isBookmarked ? "Saqlanganlardan olish" : "Saqlab qo'yish"}
+              className="card-action-btn card-action-btn-right"
+              data-active={isBookmarked}
+              data-sound="off"
+              onClick={(e) => { e.stopPropagation(); recordEvent(isBookmarked ? "unbookmark" : "bookmark"); }}
+              type="button"
+            >
+              <Star size={14} fill={isBookmarked ? "currentColor" : "none"} />
+            </button>
             <div className="flashcard-meta">
               <span>{isReview ? "Takror" : "Karta"} · {word.level}</span>
               <span data-script-lock>{word.word_type}</span>
@@ -368,6 +432,25 @@ export function LearnScreen({
             </div>
           </div>
           <div className="flashcard-side flashcard-back">
+            <button
+              aria-label="Muammo haqida xabar berish"
+              className="card-action-btn card-action-btn-left"
+              data-sound="off"
+              onClick={(e) => { e.stopPropagation(); setReportOpen((v) => !v); }}
+              type="button"
+            >
+              <Flag size={14} />
+            </button>
+            <button
+              aria-label={isBookmarked ? "Saqlanganlardan olish" : "Saqlab qo'yish"}
+              className="card-action-btn card-action-btn-right"
+              data-active={isBookmarked}
+              data-sound="off"
+              onClick={(e) => { e.stopPropagation(); recordEvent(isBookmarked ? "unbookmark" : "bookmark"); }}
+              type="button"
+            >
+              <Star size={14} fill={isBookmarked ? "currentColor" : "none"} />
+            </button>
             <div className="flashcard-meta">
               <span>Ma'no</span>
               <span>{word.level}</span>
@@ -398,42 +481,13 @@ export function LearnScreen({
             </div>
           </div>
         </motion.div>
-      </motion.button>
+      </motion.div>
 
-      <div className="action-row">
-        <button aria-label="Muammo haqida xabar berish" className="icon-button" type="button" onClick={() => setReportOpen((v) => !v)}>
-          <Flag size={18} />
-        </button>
-        <button
-          aria-label={isBookmarked ? "Saqlanganlardan olish" : "Saqlab qo'yish"}
-          className="icon-button"
-          data-active={isBookmarked}
-          data-sound="off"
-          type="button"
-          onClick={() => recordEvent(isBookmarked ? "unbookmark" : "bookmark")}
-        >
-          <Star size={18} />
-        </button>
-        {isReview ? (
-          <>
-            <button className="secondary-button" data-sound="off" type="button" onClick={() => recordEvent("forgot")}>
-              <X size={16} /> Eslolmadim
-            </button>
-            <button className="primary-button" data-sound="off" type="button" onClick={() => recordEvent("remembered")}>
-              <Check size={16} /> Bilaman
-            </button>
-          </>
-        ) : (
-          <>
-            <button className="secondary-button" data-sound="off" type="button" onClick={() => recordEvent("practice_later")}>
-              Keyingisi
-            </button>
-            <button className="primary-button" data-sound="off" type="button" onClick={() => recordEvent("learned")}>
-              <Check size={16} /> Bilaman
-            </button>
-          </>
-        )}
-      </div>
+      <p className="gesture-hint">
+        {isReview 
+          ? "Chapga suring: Eslolmadim · O'ngga suring: Bilaman" 
+          : "Chapga suring: Keyinroq · O'ngga suring: Bilaman"}
+      </p>
       {reportOpen ? (
         <div className="report-panel">
           <button type="button" onClick={() => void submitReport("too_difficult")}>Juda qiyin</button>

@@ -14,7 +14,7 @@ function getContext(): AudioContext | null {
   }
 }
 
-type ToneSpec = { freq: number; start: number; duration: number; type?: OscillatorType; gain?: number };
+type ToneSpec = { freq: number; endFreq?: number; start: number; duration: number; type?: OscillatorType; gain?: number };
 
 function playTones(specs: ToneSpec[]): void {
   const ctx = getContext();
@@ -27,6 +27,9 @@ function playTones(specs: ToneSpec[]): void {
     const peak = spec.gain ?? 0.05;
     oscillator.type = spec.type ?? "sine";
     oscillator.frequency.setValueAtTime(spec.freq, t0);
+    if (spec.endFreq) {
+      oscillator.frequency.exponentialRampToValueAtTime(spec.endFreq, t0 + spec.duration);
+    }
     gain.gain.setValueAtTime(0.0001, t0);
     gain.gain.exponentialRampToValueAtTime(peak, t0 + 0.012);
     gain.gain.exponentialRampToValueAtTime(0.0001, t0 + spec.duration);
@@ -37,14 +40,19 @@ function playTones(specs: ToneSpec[]): void {
   }
 }
 
-export type SoundEvent = "tap" | "correct" | "wrong" | "learned" | "skip" | "complete";
+export type SoundEvent = "tap" | "correct" | "wrong" | "learned" | "skip" | "complete" | "flip";
 
 export function playSound(event: SoundEvent): void {
   switch (event) {
     case "tap": // subtle click for generic buttons
       playTones([{ freq: 420, start: 0, duration: 0.045, gain: 0.025 }]);
       break;
-    case "correct": // bright two-note rise
+    case "flip": // quick tactile swipe/flip sound
+      playTones([
+        { freq: 450, endFreq: 180, start: 0, duration: 0.12, type: "triangle", gain: 0.015 },
+      ]);
+      break;
+    case "correct": // bright two-note arpeggio rise
       playTones([
         { freq: 660, start: 0, duration: 0.09 },
         { freq: 990, start: 0.08, duration: 0.13 },
@@ -56,8 +64,8 @@ export function playSound(event: SoundEvent): void {
         { freq: 880, start: 0.09, duration: 0.17 },
       ]);
       break;
-    case "wrong": // low, soft — not punishing
-      playTones([{ freq: 196, start: 0, duration: 0.22, type: "triangle", gain: 0.045 }]);
+    case "wrong": // descending glide, gentle and non-punitive
+      playTones([{ freq: 240, endFreq: 120, start: 0, duration: 0.25, type: "sine", gain: 0.045 }]);
       break;
     case "skip": // neutral short blip for "next/later"
       playTones([{ freq: 340, start: 0, duration: 0.06, gain: 0.03 }]);
@@ -70,8 +78,4 @@ export function playSound(event: SoundEvent): void {
       ]);
       break;
   }
-}
-
-export function playTapSound(): void {
-  playSound("tap");
 }

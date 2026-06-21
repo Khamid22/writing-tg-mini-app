@@ -1,4 +1,3 @@
-import { DAILY_FREE_LIMIT } from "./data";
 import type { LearnerState, TelegramWebApp, WordProgress } from "./types";
 
 const STORAGE_KEY = "uzbek-words-mini-app-state";
@@ -31,15 +30,12 @@ export function createInitialState(): LearnerState {
     displayName: user.displayName,
     username: user.username,
     tier: "free",
-    paymentRequest: undefined,
-    streak: 0,
     selectedLevel: "A1",
     preferredTopic: undefined,
     levelProgress: [],
     uzbekScript: "latin",
     progress: {},
     dailyUsage: {},
-    quizHistory: [],
   };
 }
 
@@ -68,15 +64,6 @@ export function getTodayKey(): string {
 
 export function dailyUsed(state: LearnerState): number {
   return state.dailyUsage[todayKey()] ?? 0;
-}
-
-export function dailyRemaining(state: LearnerState): number {
-  if (state.tier === "paid") return Number.POSITIVE_INFINITY;
-  return Math.max(DAILY_FREE_LIMIT - dailyUsed(state), 0);
-}
-
-export function canLearnMore(state: LearnerState): boolean {
-  return state.tier === "paid" || dailyUsed(state) < DAILY_FREE_LIMIT;
 }
 
 export function emptyProgress(): WordProgress {

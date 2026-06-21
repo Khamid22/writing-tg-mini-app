@@ -290,17 +290,25 @@ export function App(): JSX.Element {
             <div className="nav-section-items">
               {section.items.map((item) => {
                 const Icon = item.icon;
+                const isActive = item.tab === activeTab;
                 return (
                   <motion.button
                     className="nav-button"
-                    data-active={item.tab === activeTab}
+                    data-active={isActive}
                     key={item.tab}
                     onClick={() => { setActiveTab(item.tab); setDrawerOpen(false); }}
                     type="button"
                     whileTap={tapScale()}
                   >
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeTabHighlight"
+                        className="nav-button-highlight"
+                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      />
+                    )}
                     <Icon size={19} />
-              <span>{uiLabel(item)}</span>
+                    <span>{uiLabel(item)}</span>
                   </motion.button>
                 );
               })}

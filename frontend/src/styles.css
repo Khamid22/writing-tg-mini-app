@@ -159,7 +159,7 @@ h2 {
 .flashcard {
   position: relative;
   width: 100%;
-  height: clamp(245px, 42vh, 360px);
+  height: clamp(340px, 58vh, 520px);
   border: 0;
   padding: 0;
   background: transparent;
@@ -3177,7 +3177,7 @@ h2 {
 }
 
 .flashcard {
-  height: clamp(245px, 42vh, 360px);
+  height: clamp(340px, 58vh, 520px);
 }
 
 .flashcard-side {
@@ -3204,7 +3204,40 @@ h2 {
   font-size: 10px;
   color: var(--lp-muted);
   border-bottom: 1px solid var(--lp-rule-2);
-  padding-bottom: 10px;
+  padding: 0 24px 10px;
+}
+
+.card-action-btn {
+  position: absolute;
+  top: 10px;
+  background: transparent;
+  border: 0;
+  padding: 6px;
+  cursor: pointer;
+  z-index: 30;
+  color: var(--lp-muted, #6f6f69);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.card-action-btn:hover {
+  background: rgba(31, 31, 29, 0.05);
+  color: var(--lp-ink, #1f1f1d);
+}
+
+.card-action-btn[data-active="true"] {
+  color: var(--lp-accent, #7a2e1f);
+}
+
+.card-action-btn-left {
+  left: 10px;
+}
+
+.card-action-btn-right {
+  right: 10px;
 }
 
 .flashcard-word-block {
@@ -3663,8 +3696,8 @@ h2 {
   }
 
   .learn-layout > .flashcard {
-    height: clamp(310px, calc(var(--app-height) - 320px - var(--tg-top-inset) - var(--tg-bottom-inset)), 520px);
-    min-height: 300px;
+    height: clamp(380px, calc(var(--app-height) - 220px - var(--tg-top-inset) - var(--tg-bottom-inset)), 580px);
+    min-height: 360px;
   }
 
   .learn-layout > .action-row {
@@ -4950,3 +4983,73 @@ h2 {
 .course-chip strong {
   font-weight: 600;
 }
+
+/* ── sliding nav-highlight and swipe overlays ── */
+.nav-button {
+  position: relative;
+}
+
+.nav-button > svg,
+.nav-button > span {
+  position: relative;
+  z-index: 2;
+}
+
+.nav-button-highlight {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  /* Accent fill so the active label (var(--lp-bg), a light cream) stays legible. */
+  background: var(--lp-accent);
+  z-index: 1;
+}
+
+/* Let the sliding highlight provide the active fill instead of a static background. */
+.nav-button[data-active="true"] {
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Swipe Indicator overlay styles */
+.swipe-indicator {
+  position: absolute;
+  top: 32px;
+  padding: 8px 18px;
+  border-radius: 4px;
+  font-size: 20px;
+  font-weight: bold;
+  font-family: 'Times New Roman', Times, serif;
+  letter-spacing: 0.1em;
+  z-index: 20;
+  pointer-events: none;
+  text-transform: uppercase;
+  opacity: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.swipe-indicator-right {
+  left: 32px;
+  border: 2px solid #2e7d32;
+  color: #2e7d32;
+  transform: rotate(-10deg);
+  background: rgba(46, 125, 50, 0.12);
+}
+
+.swipe-indicator-left {
+  right: 32px;
+  border: 2px solid #757575;
+  color: #757575;
+  transform: rotate(10deg);
+  background: rgba(117, 117, 117, 0.12);
+}
+
+.gesture-hint {
+  text-align: center;
+  font-size: 11px;
+  color: #6b6259;
+  margin-top: 8px;
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+}
+

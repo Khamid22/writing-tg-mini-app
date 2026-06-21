@@ -16,7 +16,6 @@ ALIASES: dict[str, tuple[str, ...]] = {
     "uzbek_example": ("uzbek_example", "translation"),
     "word_type": ("word_type", "type"),
 }
-TRUTHY = {"1", "true", "yes", "y", "published", "active"}
 QUALITY_STATUSES = {status.value for status in WordQualityStatus}
 
 
@@ -29,11 +28,6 @@ def _get(row: dict, key: str) -> str:
         if value := _clean(row.get(alias)):
             return value
     return ""
-
-
-def _to_bool(value: Any, default: bool = True) -> bool:
-    text = _clean(value).lower()
-    return default if not text else text in TRUTHY
 
 
 def _to_int(value: Any, default: int = 0) -> int:

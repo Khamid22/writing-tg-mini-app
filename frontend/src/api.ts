@@ -1,4 +1,4 @@
-import type { LearnerState, PaymentRequest } from "./types";
+import type { LearnerState } from "./types";
 
 const TOKEN_KEY = "uzbek-words-api-token";
 
@@ -173,16 +173,6 @@ type AuthResponse = {
   token: string;
 };
 
-type ManualPaymentResponse = {
-  code: string;
-  status: PaymentRequest["status"];
-  plan_days: number;
-  amount_uzs: number;
-  card_label: string;
-  expires_at: string;
-  instructions: string[];
-};
-
 function apiBaseUrl(): string {
   const configured = import.meta.env.VITE_API_BASE_URL as string | undefined;
   if (configured) return configured.replace(/\/$/, "");
@@ -332,23 +322,3 @@ export async function fetchPublicProfile(userId: number): Promise<PublicProfileR
   return apiFetch<PublicProfileResponse>(`/api/mini/users/${userId}`);
 }
 
-export function mapPaymentResponse(payment: ManualPaymentResponse): PaymentRequest {
-  return {
-    code: payment.code,
-    status: payment.status,
-    amountUzs: payment.amount_uzs,
-    planDays: payment.plan_days,
-    cardLabel: payment.card_label,
-    expiresAt: payment.expires_at,
-    instructions: payment.instructions,
-    createdAt: new Date().toISOString(),
-  };
-}
-
-export async function requestManualPayment(): Promise<PaymentRequest> {
-  const response = await apiFetch<ManualPaymentResponse>("/api/mini/payments/manual/request", {
-    method: "POST",
-    body: JSON.stringify({}),
-  });
-  return mapPaymentResponse(response);
-}

@@ -1,11 +1,31 @@
 import { useEffect, useState } from "react";
 import type { JSX } from "react";
+import { motion } from "motion/react";
 import { ChevronRight, GraduationCap, RotateCcw } from "lucide-react";
 import type { ApiQuestion, AnswerResponse } from "../api";
 import { answerTestQuestion, completeTest, startTest } from "../api";
 import type { LearnerState } from "../types";
 import { playSound } from "../soundSystem";
 import { hapticNotify } from "../haptics";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring" as const, stiffness: 260, damping: 20 },
+  },
+};
 
 type QuizState =
   | { phase: "idle" }
@@ -146,12 +166,28 @@ export function TestScreen({
         <strong>{quiz.index + 1}/{quiz.questions.length}</strong>
       </div>
       <h2 data-script-lock>{current.prompt}</h2>
-      <div className="choices">
+      <motion.div
+        className="choices"
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        key={quiz.index}
+      >
         {current.choices.map((choice) => {
           const isCorrect = quiz.selected !== null && choice === quiz.correctAnswer;
           const isWrong = quiz.selected === choice && choice !== quiz.correctAnswer;
+
+          // Feedback animations include the resting state (opacity/x/y) so the
+          // button never drops out of view; when neither, `undefined` lets the
+          // button keep inheriting the parent's staggered "show" variant.
+          const feedbackAnimate = isCorrect
+            ? { opacity: 1, x: 0, y: 0, scale: [1, 1.03, 1] }
+            : isWrong
+              ? { opacity: 1, y: 0, scale: 1, x: [-8, 8, -6, 6, -4, 4, 0] }
+              : undefined;
+
           return (
-            <button
+            <motion.button
               className="choice-button"
               data-correct={isCorrect}
               data-wrong={isWrong}
@@ -160,13 +196,16 @@ export function TestScreen({
               key={choice}
               onClick={() => answer(choice)}
               type="button"
+              variants={itemVariants}
+              animate={feedbackAnimate}
+              transition={isCorrect ? { duration: 0.28 } : isWrong ? { duration: 0.38 } : undefined}
             >
               <span data-script-lock>{choice}</span>
               <ChevronRight size={16} />
-            </button>
+            </motion.button>
           );
         })}
-      </div>
+      </motion.div>
       {quiz.selected !== null ? (
         <button className="primary-button wide" type="button" onClick={next}>
           Davom etish
